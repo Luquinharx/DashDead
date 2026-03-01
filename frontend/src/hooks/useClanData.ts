@@ -84,13 +84,8 @@ export function useClanData() {
           }
         }
 
-        const baseVal = historyAll[BASE_DATE] ?? 0;
         const latestVal = historyAll[latest] ?? 0;
 
-        // usuário novo? (sem dados anteriores e sem baseline)
-        const hasHistoryBefore = datesWithData.some(d => d < latest);
-        const hasBase = BASE_DATE in historyAll;
-        const isNew = !hasHistoryBefore && !hasBase;
 
         // status de atualização por membro
         const memberEntry = daily[latest]?.[u];

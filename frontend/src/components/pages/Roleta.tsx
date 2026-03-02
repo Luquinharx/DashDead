@@ -56,7 +56,6 @@ export default function Roleta() {
   const isQualified = lootReference >= 5000;
   const weeklyTotal = isQualified ? 1 : 0; // Quantos giros semanais (grátis) são possíveis
   const extraSpins = profile?.extraSpins || 0; // Giros manuais extras
-  const girosTotal = weeklyTotal + extraSpins; // Total de giros possíveis na semana para exibir
 
   // carregar giros já usados NESTA semana de premiação
   useEffect(() => {

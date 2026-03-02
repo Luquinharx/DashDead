@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useClanMemberData, useScrapedUsernames } from '../../hooks/useClanMemberData'; // Assuming useScrapedUsernames is exported here

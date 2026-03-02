@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Gift, User, Settings, LogOut, BarChart3, LogIn, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Gift, User, Settings, LogOut, BarChart3, LogIn, Menu, X, Home } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
 
@@ -11,12 +11,14 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
 
   // Check if admin
-  const isAdmin = profile?.cargo === 'Líder' || profile?.cargo === 'Sub-Líder';
+  const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
+  const isAdmin = profile?.cargo === 'Líder' || profile?.cargo === 'Sub-Líder' || isSuperUser;
 
   // Base links visible to everyone
   const publicLinks = [
-    { to: '/', label: 'Clan Tracker', icon: BarChart3 },
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/', label: 'Base', icon: Home },
+    { to: '/tracker', label: 'Clan Tracker', icon: BarChart3 },
+    { to: '/dashboard', label: 'Operatives', icon: LayoutDashboard },
   ];
 
   // Links visible only to logged users
@@ -24,16 +26,11 @@ export default function Navbar() {
     { to: '/roleta', label: 'Casino', icon: Gift },
     { to: '/perfil', label: 'Profile', icon: User },
   ];
-
-  // Admin links
-  const adminLinks = [
-    { to: '/admin', label: 'Admin', icon: Settings },
-  ];
-
+  
   const links = [
     ...publicLinks,
     ...(profile ? protectedLinks : []),
-    ...(isAdmin ? adminLinks : []),
+    ...(isAdmin ? [{ to: '/admin', label: 'Admin', icon: Settings }] : []),
   ];
 
   return (
@@ -44,38 +41,37 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <h1 className="text-xl sm:text-2xl font-serif font-black tracking-widest text-white uppercase shadow-red-500/50 drop-shadow-sm">
-              <span className="text-red-600">We Are</span> Dead
+              <span className="text-red-600">Brotherly</span> Blades
             </h1>
           </div>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-6">
-            <div className="flex items-center gap-1">
-
-              {links.map(l => {
-                const active = location.pathname === l.to;
-                return (
-                  <Link
-                    key={l.to}
-                    to={l.to}
-                    className={cn(
-                      "group relative flex items-center gap-2 px-4 py-2 text-sm font-serif tracking-wide uppercase transition-all duration-300",
-                      active
-                        ? "text-red-500"
-                        : "text-slate-400 hover:text-white"
-                    )}
-                  >
-                   
-                    <span>{l.label}</span>
-                    {/* Hover Underline */}
-                    <span className={cn(
-                        "absolute bottom-0 left-0 w-full h-0.5 bg-red-600 transform scale-x-0 transition-transform duration-300 group-hover:scale-x-100",
-                        active && "scale-x-100"
-                    )}/>
-                  </Link>
-                );
-              })}
-            </div>
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center gap-6">
+              <div className="flex items-center gap-1">
+                {links.map(l => {
+                  const active = location.pathname === l.to;
+                  return (
+                    <Link
+                      key={l.to}
+                      to={l.to}
+                      className={cn(
+                        "group relative flex items-center gap-2 px-4 py-2 text-sm font-serif tracking-wide uppercase transition-all duration-300",
+                        active
+                          ? "text-red-500"
+                          : "text-slate-400 hover:text-white"
+                      )}
+                    >
+                      <l.icon className={cn("w-4 h-4 transition-colors", active ? "text-red-500" : "text-slate-500 group-hover:text-white")} />
+                      <span>{l.label}</span>
+                      {/* Hover Underline */}
+                      <span className={cn(
+                          "absolute bottom-0 left-0 w-full h-0.5 bg-red-600 transform scale-x-0 transition-transform duration-300 group-hover:scale-x-100",
+                          active && "scale-x-100"
+                      )}/>
+                    </Link>
+                  );
+                })}
+              </div>
 
             <div className="h-6 w-px bg-white/10 mx-2" />
 

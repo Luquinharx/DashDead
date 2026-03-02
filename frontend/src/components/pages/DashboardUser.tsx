@@ -1,48 +1,45 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import { useAuth, type UserProfile } from '../../hooks/useAuth';
-import { useClanMemberData } from '../../hooks/useClanMemberData';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { useClanMemberData, useScrapedUsernames } from '../../hooks/useClanMemberData'; // Assuming useScrapedUsernames is exported here
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, TrendingUp, Flame, LayoutDashboard } from 'lucide-react';
+import { Users, TrendingUp, Flame, LayoutDashboard, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 
 export default function DashboardUser() {
   const { profile } = useAuth();
-  const [usuarios, setUsuarios] = useState<UserProfile[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlUser = searchParams.get('user');
+
+  const { usernames, loading: loadingNames } = useScrapedUsernames();
   const [selectedNickJogo, setSelectedNickJogo] = useState('');
-  const [loading, setLoading] = useState(true);
+
+  // Initial selection logic
+  useEffect(() => {
+    if (loadingNames) return;
+
+    if (urlUser && usernames.includes(urlUser)) {
+      setSelectedNickJogo(urlUser);
+    } else if (profile?.nickJogo && usernames.includes(profile.nickJogo)) {
+      setSelectedNickJogo(profile.nickJogo);
+    } else if (usernames.length > 0 && !selectedNickJogo) {
+      setSelectedNickJogo(usernames[0]);
+    }
+  }, [loadingNames, usernames, profile, urlUser]);
+
+  // Update URL when selection changes
+  const handleSelect = (nick: string) => {
+      setSelectedNickJogo(nick);
+      setSearchParams({ user: nick });
+  };
 
   const { stats, loading: statsLoading } = useClanMemberData(selectedNickJogo || undefined);
 
-  // carregar todos os usuários vinculados
-  useEffect(() => {
-    async function load() {
-      const snap = await getDocs(collection(db, 'usuarios'));
-      const list: UserProfile[] = [];
-      snap.forEach(d => list.push(d.data() as UserProfile));
-      // filtrar somente quem tem nickJogo preenchido
-      const linked = list.filter(u => u.nickJogo).sort((a, b) => a.nick.localeCompare(b.nick));
-      setUsuarios(linked);
-
-      // selecionar o próprio usuário por padrão
-      if (profile?.nickJogo) {
-        setSelectedNickJogo(profile.nickJogo);
-      } else if (linked.length > 0) {
-        setSelectedNickJogo(linked[0].nickJogo);
-      }
-      setLoading(false);
-    }
-    load();
-  }, [profile]);
-
-  const selectedUser = useMemo(() => usuarios.find(u => u.nickJogo === selectedNickJogo), [usuarios, selectedNickJogo]);
-
   const girosDisponiveis = stats ? Math.floor((stats.weeklyToDate || 0) / 5000) : 0;
 
-  if (loading) {
+  if (loadingNames) {
     return (
       <div className="min-h-screen bg-black">
         <div className="flex items-center justify-center h-[80vh]">
@@ -70,15 +67,19 @@ export default function DashboardUser() {
 
           <div>
             <label className="block text-xs font-serif font-bold text-stone-500 mb-1 uppercase tracking-widest">Select Operative</label>
-            <select
-              value={selectedNickJogo}
-              onChange={e => setSelectedNickJogo(e.target.value)}
-              className="px-4 py-3 bg-stone-950 border border-white/10 rounded-sm text-white focus:outline-none focus:ring-1 focus:ring-red-900 focus:border-red-900 transition-all min-w-[250px] font-mono text-sm uppercase"
-            >
-              {usuarios.map(u => (
-                <option key={u.userId} value={u.nickJogo}>{u.nick} ({u.nickJogo})</option>
-              ))}
-            </select>
+            <div className="relative group">
+                <select
+                value={selectedNickJogo}
+                onChange={e => handleSelect(e.target.value)}
+                className="px-4 py-3 bg-black border border-white/10 rounded-sm text-white focus:outline-none focus:ring-1 focus:ring-red-900 focus:border-red-900 transition-all min-w-[250px] font-mono text-sm uppercase appearance-none cursor-pointer hover:border-white/30"
+                style={{ colorScheme: 'dark' }}
+                >
+                {usernames.map(u => (
+                    <option key={u} value={u} className="bg-stone-950 text-white hover:bg-red-900/20">{u}</option>
+                ))}
+                </select>
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none group-hover:text-white transition-colors" />
+            </div>
           </div>
         </header>
 
@@ -93,8 +94,8 @@ export default function DashboardUser() {
               <div className="bg-stone-900/50 border border-white/5 rounded-sm p-6 shadow-sm flex items-center gap-4 hover:border-red-900/30 transition-colors">
                   <div className="p-3 bg-black border border-white/10 rounded-sm text-stone-400 transform rotate-3"><Users className="w-6 h-6" /></div>
                   <div>
-                    <p className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Rank</p>
-                    <p className="text-xl font-bold text-white font-serif">{selectedUser?.cargo || '—'}</p>
+                    <p className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Operative</p>
+                    <p className="text-xl font-bold text-white font-serif truncate max-w-[150px]" title={stats.username}>{stats.username}</p>
                   </div>
               </div>
 

@@ -8,13 +8,15 @@ import DashboardUser from './components/pages/DashboardUser';
 import Roleta from './components/pages/Roleta';
 import Perfil from './components/pages/Perfil';
 import GerenciarUsuarios from './components/pages/GerenciarUsuarios';
+import Home from './components/pages/Home';
 import Navbar from './components/Navbar';
 
+// Layout agora só fornece o Navbar, o background/altura é controlado por cada página para total liberdade
 const PublicLayout = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen bg-black text-slate-200 font-sans">
+  <>
     <Navbar />
     {children}
-  </div>
+  </>
 );
 
 function App() {
@@ -22,15 +24,13 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public Routes with Navbar */}
-          <Route path="/" element={<PublicLayout><Dashboard /></PublicLayout>} />
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/tracker" element={<PublicLayout><Dashboard /></PublicLayout>} />
           <Route path="/dashboard" element={<PublicLayout><DashboardUser /></PublicLayout>} />
           <Route path="/login" element={<Login />} />
 
-          {/* Protected Routes with Navbar (Navbar inside component or layout wrapper if needed, 
-              but Roleta/Perfil usually have their own structure or we should standardize) 
-              Refactoring to wrap protected routes in PublicLayout as well for consistent Nav 
-          */}
+          {/* Protected Routes */}
           <Route path="/roleta" element={<ProtectedRoute><PublicLayout><Roleta /></PublicLayout></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><PublicLayout><Perfil /></PublicLayout></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><PublicLayout><GerenciarUsuarios /></PublicLayout></ProtectedRoute>} />
@@ -42,5 +42,6 @@ function App() {
     </BrowserRouter>
   );
 }
+
 
 export default App;

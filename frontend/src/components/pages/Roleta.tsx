@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useClanMemberData } from '../../hooks/useClanMemberData';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, Timestamp, updateDoc, doc } from 'firebase/firestore';
 import { Gift } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -54,7 +54,9 @@ export default function Roleta() {
 
   // Rule: Score at least 5k loots to qualify. Max 1 spin per week.
   const isQualified = lootReference >= 5000;
-  const girosTotal = isQualified ? 1 : 0;
+  const weeklyTotal = isQualified ? 1 : 0; // Quantos giros semanais (grátis) são possíveis
+  const extraSpins = profile?.extraSpins || 0; // Giros manuais extras
+  const girosTotal = weeklyTotal + extraSpins; // Total de giros possíveis na semana para exibir
 
   // carregar giros já usados NESTA semana de premiação
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function Roleta() {
     load();
   }, [profile, spinning, startOfPrizeWeek]);
 
-  const girosDisponiveis = Math.max(0, girosTotal - girosUsados);
+  const girosDisponiveis = Math.max(0, (weeklyTotal - girosUsados) + extraSpins);
 
   const girar = useCallback(async () => {
     if (spinning || girosDisponiveis <= 0 || !profile?.userId) return;
@@ -141,10 +143,19 @@ export default function Roleta() {
         data: Timestamp.now(),
         entregue: false,
       });
+
+      // Se usou um giro extra (porque não tinha mais semanais ou não era qualificado), debitar
+      const hasWeeklyAvailable = weeklyTotal > girosUsados;
+      if (!hasWeeklyAvailable && extraSpins > 0) {
+        await updateDoc(doc(db, 'usuarios', profile.userId), {
+            extraSpins: extraSpins - 1
+        });
+      }
+
     } catch (err) {
       console.error('Erro ao salvar:', err);
     }
-
+    
     setResult(selected);
     setSpinning(false);
     await refreshProfile();

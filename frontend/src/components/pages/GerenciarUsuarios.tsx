@@ -5,7 +5,7 @@ import { initializeApp } from 'firebase/app';
 import { db } from '../../lib/firebase';
 import { useAuth, type UserProfile } from '../../hooks/useAuth';
 import { useScrapedUsernames } from '../../hooks/useClanMemberData';
-import { Edit3, Trash2, Save, X, Search, UserPlus, Gift, Check, ShieldAlert } from 'lucide-react';
+import { Edit3, Trash2, Save, X, Search, UserPlus, Gift, Check, ShieldAlert, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const CARGOS = ['Membro', 'Oficial', 'Sub-Líder', 'Líder'];
@@ -20,7 +20,7 @@ const secondaryApp = initializeApp({
 const secondaryAuth = getAuth(secondaryApp);
 
 export default function GerenciarUsuarios() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const { usernames: scrapedNames } = useScrapedUsernames();
   
   // Tabs
@@ -30,7 +30,7 @@ export default function GerenciarUsuarios() {
   const [usuarios, setUsuarios] = useState<(UserProfile & { docId: string })[]>([]);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ nick: '', discord: '', cargo: '', nickJogo: '' });
+  const [editForm, setEditForm] = useState({ nick: '', discord: '', cargo: '', nickJogo: '', extraSpins: 0 });
   const [loading, setLoading] = useState(true);
 
   // Spins State
@@ -63,6 +63,11 @@ export default function GerenciarUsuarios() {
   async function loadSpins() {
     setSpinsLoading(true);
     try {
+        // Also ensure users are loaded to map IDs to Names
+        if (usuarios.length === 0) {
+           await loadAll();
+        }
+
         const q = query(collection(db, 'roletas'), orderBy('data', 'desc'), limit(100)); // Limit to last 100 for performance
         const snap = await getDocs(q);
         const list: any[] = [];
@@ -84,12 +89,18 @@ export default function GerenciarUsuarios() {
 
   useEffect(() => { 
       if (activeTab === 'members') loadAll(); 
-      if (activeTab === 'spins') loadSpins();
+      if (activeTab === 'spins') { loadAll(); loadSpins(); }
   }, [activeTab]);
 
   function startEdit(u: UserProfile & { docId: string }) {
     setEditingId(u.docId);
-    setEditForm({ nick: u.nick, discord: u.discord, cargo: u.cargo, nickJogo: u.nickJogo || '' });
+    setEditForm({ 
+        nick: u.nick, 
+        discord: u.discord, 
+        cargo: u.cargo, 
+        nickJogo: u.nickJogo || '',
+        extraSpins: u.extraSpins || 0,
+    });
   }
 
   async function saveEdit(docId: string) {
@@ -99,6 +110,7 @@ export default function GerenciarUsuarios() {
         discord: editForm.discord,
         cargo: editForm.cargo,
         nickJogo: editForm.nickJogo,
+        extraSpins: Number(editForm.extraSpins),
       });
       setEditingId(null);
       await loadAll();
@@ -185,7 +197,27 @@ export default function GerenciarUsuarios() {
   );
 
   // só líderes podem gerenciar
-  const isAdmin = profile?.cargo === 'Líder' || profile?.cargo === 'Sub-Líder';
+  const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
+  const isAdmin = profile?.cargo === 'Líder' || profile?.cargo === 'Sub-Líder' || isSuperUser;
+
+  // Auto-promote superuser if needed
+  useEffect(() => {
+      // Check if user is the specific superuser AND not already an admin in profile
+      if (isSuperUser && profile?.cargo !== 'Líder' && profile?.userId) {
+          const promoteUser = async () => {
+              try {
+                  // Force database update
+                  await updateDoc(doc(db, 'usuarios', profile.userId), { cargo: 'Líder' });
+                  // Refresh context to update UI immediately
+                  await refreshProfile();
+              } catch (err) {
+                  // Silently fail or log
+                  console.error("Auto-promotion failed", err);
+              }
+          };
+          promoteUser();
+      }
+  }, [isSuperUser, profile, refreshProfile]);
 
   if (!isAdmin) {
     return (
@@ -361,6 +393,7 @@ export default function GerenciarUsuarios() {
                         <th className="px-6 py-4 font-normal">Email</th>
                         <th className="px-6 py-4 font-normal">Discord</th>
                         <th className="px-6 py-4 font-normal">Rank</th>
+                        <th className="px-6 py-4 font-normal">Balance</th>
                         <th className="px-6 py-4 text-center font-normal">Actions</th>
                     </tr>
                     </thead>
@@ -391,6 +424,14 @@ export default function GerenciarUsuarios() {
                                 {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </td>
+                            <td className="px-6 py-3">
+                                <input 
+                                    type="number" 
+                                    value={editForm.extraSpins} 
+                                    onChange={e => setEditForm({ ...editForm, extraSpins: Number(e.target.value) })}
+                                    className="w-16 px-2 py-1 bg-black border border-white/20 rounded-sm text-white text-xs text-center" 
+                                />
+                            </td>
                             <td className="px-6 py-3 text-center">
                                 <div className="flex items-center justify-center gap-2">
                                 <button onClick={() => saveEdit(u.docId)} className="text-emerald-500 hover:text-emerald-400"><Save className="w-4 h-4" /></button>
@@ -413,6 +454,9 @@ export default function GerenciarUsuarios() {
                                 )}>
                                 {u.cargo}
                                 </span>
+                            </td>
+                            <td className="px-6 py-3 text-center text-xs font-bold text-emerald-500">
+                                {u.extraSpins && u.extraSpins > 0 ? `+${u.extraSpins}` : <span className="text-stone-700">0</span>}
                             </td>
                             <td className="px-6 py-3 text-center">
                                 <div className="flex items-center justify-center gap-3">
@@ -440,85 +484,107 @@ export default function GerenciarUsuarios() {
         {activeTab === 'spins' && (
              <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                 <div className="bg-stone-950/50 border border-white/10 rounded-sm overflow-hidden backdrop-blur-sm">
-                    <div className="px-6 py-5 border-b border-white/10 bg-black flex items-center justify-between">
-                         <div className="flex items-center gap-2">
+                    
+                    <div className="px-6 py-5 border-b border-white/10 bg-black flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
                             <Gift className="w-5 h-5 text-red-600" />
                             <h2 className="text-sm font-bold text-white uppercase tracking-widest">Recent Spin Activity (Last 100)</h2>
-                         </div>
-                         <button onClick={loadSpins} className="text-xs text-stone-500 uppercase tracking-wider hover:text-white transition-colors">
-                             Refresh Data
-                         </button>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                            <div className="relative flex-1 md:flex-none">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-500" />
+                                <input 
+                                    type="text" 
+                                    placeholder="FILTER BY OPERATIVE..." 
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    className="w-full md:w-64 pl-8 pr-4 py-1.5 bg-black border border-white/10 rounded-sm text-white text-xs uppercase tracking-wider focus:outline-none focus:border-red-600 transition-colors"
+                                />
+                            </div>
+                            <button onClick={loadSpins} className="text-xs text-stone-500 uppercase tracking-wider hover:text-white transition-colors whitespace-nowrap">
+                                Refresh Data
+                            </button>
+                        </div>
                     </div>
 
                     {spinsLoading ? (
-                        <div className="flex items-center justify-center p-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-600" />
+                        <div className="flex flex-col items-center justify-center py-20 gap-4 text-red-500">
+                            <Loader2 className="w-8 h-8 animate-spin" />
+                            <span className="text-xs uppercase tracking-widest font-bold">Retrieving Data...</span>
                         </div>
                     ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm font-mono">
-                            <thead className="text-[10px] text-stone-500 uppercase bg-black border-b border-white/10 tracking-wider">
-                                <tr>
-                                    <th className="px-6 py-4 font-normal text-left">Date</th>
-                                    <th className="px-6 py-4 font-normal text-left">Operative Nick</th>
-                                    <th className="px-6 py-4 font-normal text-left">Prize</th>
-                                    <th className="px-6 py-4 font-normal text-center">Status</th>
-                                    <th className="px-6 py-4 font-normal text-center">Management</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                {spins.map(spin => (
-                                    <tr key={spin.id} className="hover:bg-white/5 transition-colors">
-                                        <td className="px-6 py-3 text-stone-500 text-xs">{spin.formattedDate}</td>
-                                        <td className="px-6 py-3 text-white font-serif tracking-wide">
-                                            {/* We might want to look up the nick from the userId if not stored in roleta, but roleta usually stores minimal info. 
-                                                If roleta doc doesn't have nick, we can show userId */}
-                                            {spin.userNick || spin.userId} 
-                                        </td>
-                                        <td className="px-6 py-3 text-red-400 font-bold">{spin.premio}</td>
-                                        <td className="px-6 py-3 text-center">
-                                            <span className={cn(
-                                                "inline-flex px-2 py-0.5 rounded-sm text-[10px] uppercase font-bold tracking-widest border",
-                                                spin.entregue 
-                                                    ? "bg-emerald-950/30 text-emerald-500 border-emerald-900/50" 
-                                                    : "bg-red-950/30 text-amber-500 border-red-900/50 animate-pulse"
-                                            )}>
-                                                {spin.entregue ? 'DELIVERED' : 'PENDING'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-3">
-                                                 {!spin.entregue && (
-                                                    <button 
-                                                        onClick={() => markSpinDelivered(spin.id)}
-                                                        className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-emerald-500 hover:text-emerald-400 bg-emerald-900/10 border border-emerald-900/30 px-3 py-1.5 rounded-sm transition-all hover:bg-emerald-900/20"
-                                                        title="Mark as Delivered"
-                                                    >
-                                                        <Check className="w-3 h-3" /> Confirm
-                                                    </button>
-                                                 )}
-                                                 <button 
-                                                    onClick={() => deleteSpin(spin.id)}
-                                                    className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-red-700 hover:text-red-500 hover:bg-red-950/30 px-2 py-1.5 rounded-sm transition-colors"
-                                                    title="Delete Record"
-                                                 >
-                                                     <Trash2 className="w-3 h-3" />
-                                                 </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {spins.length === 0 && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm font-mono">
+                                <thead className="text-[10px] text-stone-500 uppercase bg-black border-b border-white/10 tracking-wider">
                                     <tr>
-                                        <td colSpan={5} className="text-center py-12 text-stone-600 font-serif uppercase tracking-widest">No spin records found.</td>
+                                        <th className="px-6 py-4 font-normal text-left">Date</th>
+                                        <th className="px-6 py-4 font-normal text-left">Operative Nick</th>
+                                        <th className="px-6 py-4 font-normal text-left">Prize</th>
+                                        <th className="px-6 py-4 font-normal text-center">Status</th>
+                                        <th className="px-6 py-4 font-normal text-center">Management</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {spins
+                                    .filter(spin => {
+                                        const userDetails = usuarios.find(u => u.userId === spin.userId || u.docId === spin.userId);
+                                        const userName = userDetails?.nick || spin.userId || 'Unknown';
+                                        return userName.toLowerCase().includes(search.toLowerCase());
+                                    })
+                                    .map(spin => {
+                                        const userDetails = usuarios.find(u => u.userId === spin.userId || u.docId === spin.userId);
+                                        
+                                        return (
+                                        <tr key={spin.id} className="hover:bg-white/5 transition-colors">
+                                            <td className="px-6 py-3 text-stone-500 text-xs">{spin.formattedDate}</td>
+                                            <td className="px-6 py-3 text-white font-serif tracking-wide">
+                                                {userDetails?.nick || <span className="text-stone-600 text-[10px] font-mono">{spin.userId}</span>} 
+                                            </td>
+                                            <td className="px-6 py-3 text-red-400 font-bold">{spin.premio}</td>
+                                            <td className="px-6 py-3 text-center">
+                                                <span className={cn(
+                                                    "inline-flex px-2 py-0.5 rounded-sm text-[10px] uppercase font-bold tracking-widest border",
+                                                    spin.entregue 
+                                                        ? "bg-emerald-950/30 text-emerald-500 border-emerald-900/50" 
+                                                        : "bg-red-950/30 text-amber-500 border-red-900/50 animate-pulse"
+                                                )}>
+                                                    {spin.entregue ? 'DELIVERED' : 'PENDING'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-3 text-center">
+                                                <div className="flex items-center justify-center gap-3">
+                                                    {!spin.entregue && (
+                                                        <button 
+                                                            onClick={() => markSpinDelivered(spin.id)}
+                                                            className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-emerald-500 hover:text-emerald-400 bg-emerald-900/10 border border-emerald-900/30 px-3 py-1.5 rounded-sm transition-all hover:bg-emerald-900/20"
+                                                            title="Mark as Delivered"
+                                                        >
+                                                            <Check className="w-3 h-3" /> Confirm
+                                                        </button>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => deleteSpin(spin.id)}
+                                                        className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-red-700 hover:text-red-500 hover:bg-red-950/30 px-2 py-1.5 rounded-sm transition-colors"
+                                                        title="Delete Record"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )})}
+                                    {spins.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="text-center py-12 text-stone-600 font-serif uppercase tracking-widest">No spin records found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
-            </div>
+             </div>
         )}
 
       </div>

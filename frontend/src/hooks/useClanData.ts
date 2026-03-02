@@ -67,7 +67,8 @@ export function useClanData() {
       const latestDateObj = isoToDate(latest);
       const daysSinceBase = Math.floor((latestDateObj.getTime() - baseDateObj.getTime()) / 86400000);
       const totalWeeksGlobal = Math.max(0, Math.floor(daysSinceBase / 7) + 1);
-      setNumWeekCols(Math.min(4, totalWeeksGlobal));
+      setNumWeekCols(totalWeeksGlobal); // Show all weeks available, removed Math.min(4, ...)
+
 
       let updCnt = 0;
       const out: MemberData[] = [];

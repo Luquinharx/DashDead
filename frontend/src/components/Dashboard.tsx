@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import { useClanData, type MemberData } from '../hooks/useClanData';
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, Users, TrendingUp, Flame, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
 
@@ -196,7 +197,7 @@ export default function Dashboard() {
                     Var % <SortIcon columnKey="pctNum" />
                   </th>
                   <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group" onClick={() => handleSort('streak')}>
-                    Streak <SortIcon columnKey="streak" />
+                    Wk Streak <SortIcon columnKey="streak" />
                   </th>
                 </tr>
               </thead>
@@ -224,7 +225,11 @@ export default function Dashboard() {
                           "inline-block w-1.5 h-1.5 rotate-45 flex-shrink-0",
                           r.isUpdated ? "bg-red-500 shadow-[0_0_5px_red]" : "bg-stone-700"
                         )} title={r.isUpdated ? 'Updated' : 'Pending'} />
-                        <span className="tracking-wide">{r.username}</span>
+                        
+                        <Link to={`/dashboard?user=${encodeURIComponent(r.username)}`} className="tracking-wide hover:text-red-500 hover:underline transition-all">
+                            {r.username}
+                        </Link>
+                        
                         {isHighlight && <Flame className="w-3.5 h-3.5 text-red-600" />}
                       </td>
                       <td className="px-6 py-4 text-right text-stone-300">

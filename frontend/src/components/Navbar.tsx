@@ -12,7 +12,7 @@ export default function Navbar() {
 
   // Check if admin
   const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
-  const isAdmin = profile?.cargo === 'Leader' || profile?.cargo === 'Sub-Leader' || isSuperUser;
+  const isAdmin = profile?.cargo === 'Leader' || profile?.cargo === 'Blade Master' || profile?.cargo === 'Sub-Leader' || profile?.cargo === 'Officer' || isSuperUser;
 
   // Base links visible to everyone
   const publicLinks = [
@@ -25,9 +25,12 @@ export default function Navbar() {
 
   // Links visible only to logged users
   const protectedLinks = [
-    { to: '/roleta', label: 'Casino', icon: Gift },
     { to: '/perfil', label: 'Profile', icon: User },
   ];
+
+  if (isSuperUser || profile?.cargo === 'High Warden') {
+    protectedLinks.unshift({ to: '/roleta', label: 'Adicionar item', icon: Gift });
+  }
   
   const links = [
     ...publicLinks,

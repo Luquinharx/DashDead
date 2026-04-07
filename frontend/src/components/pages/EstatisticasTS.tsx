@@ -255,6 +255,9 @@ export default function EstatisticasTS() {
                   <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group hidden md:table-cell" onClick={() => handleSort('rank')}>
                     Rank <SortIcon columnKey="rank" />
                   </th>
+                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group" onClick={() => handleSort('daily_ts_calc')}>
+                    Daily TS <SortIcon columnKey="daily_ts_calc" />
+                  </th>
                   <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group" onClick={() => handleSort('weekly_ts')}>
                     Weekly TS <SortIcon columnKey="weekly_ts" />
                   </th>
@@ -278,6 +281,10 @@ export default function EstatisticasTS() {
                   const clanWeeklyClass = p.clan_weekly_ts > 5000 ? "text-emerald-500" : p.clan_weekly_ts > 0 ? "text-stone-300" : "text-stone-600";
                   const allTimeTSClass = p.all_time_ts > 50000000 ? "text-emerald-400" : "text-stone-300";
 
+                  const dailyTS = p.daily_ts_calc || 0;
+                  const dailyTSClass = dailyTS > 0 ? "text-sky-500" : dailyTS < 0 ? "text-red-500" : "text-stone-600";
+                  const dailyTSText = (dailyTS >= 0 ? '+' : '') + formatNumber(dailyTS);
+
                   return (
                     <tr
                       key={p.username}
@@ -297,8 +304,14 @@ export default function EstatisticasTS() {
                         </Link>
                         {isHighlight && <Flame className="w-3.5 h-3.5 text-red-600" />}
                       </td>
-                      <td className="px-6 py-4 text-right text-stone-300 hidden md:table-cell">      
+                      <td className="px-6 py-4 text-right text-stone-300 hidden md:table-cell">
                         <RankBadge rank={p.rank} />
+                      </td>
+                      <td className={cn(
+                        "px-6 py-4 text-right font-bold",
+                        dailyTSClass
+                      )}>
+                        {dailyTSText}
                       </td>
                       <td className={cn(
                         "px-6 py-4 text-right font-bold",
@@ -331,7 +344,7 @@ export default function EstatisticasTS() {
                 })}
                 {paginatedProfiles.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-stone-600 font-serif uppercase tracking-widest">
+                    <td colSpan={7} className="px-6 py-12 text-center text-stone-600 font-serif uppercase tracking-widest">
                       No operatives found.
                     </td>
                   </tr>

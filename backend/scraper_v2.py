@@ -2,18 +2,17 @@
 import os
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import requests
 from bs4 import BeautifulSoup
 from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 # Config
 CLAN_URL = "https://www.dfprofiler.com/clan/view/2166"
 BASE_URL = "https://www.dfprofiler.com"
 FIREBASE_DB_URL = os.getenv("FIREBASE_DB_URL", "https://deadbb-2d5a8-default-rtdb.firebaseio.com/")
-USER_AGENT = "Mozilla/5.0 (compatible; scraper/2.0)"
+USER_AGENT = "Mozilla/5.0 (compatible; scraper/3.0)"
 BRAZIL_TZ = pytz.timezone("America/Sao_Paulo")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -23,34 +22,6 @@ def parse_int(text):
         return 0
     s = "".join(ch for ch in text if ch.isdigit() or ch == '-')
     return int(s) if s and s != '-' else 0
-
-def get_rank_and_score(months_in_clan, clan_loots, donated_amt=0):
-    """
-    Ranks:
-    1. IronHeart (Not specified, assumed highest)
-    2. High Warden (Not specified)
-    3. Blade Master (40M)
-    4. Guardian (15M)
-    5. Gate Soldier (1M)
-    6. Street Cleaner (starting)
-
-    Rules:
-    1 month = 7m
-    1k clan loots = 500k
-    1mil donated = 1mil
-    """
-    score = (months_in_clan * 7_000_000) + ((clan_loots / 1000.0) * 500_000) + donated_amt
-    
-    if score >= 40_000_000:
-        rank = "Blade Master" # Pode ser ajustado para incluir IronHeart/High Warden caso as metas sejam conhecidas
-    elif score >= 15_000_000:
-        rank = "Guardian"
-    elif score >= 1_000_000:
-        rank = "Gate Soldier"
-    else:
-        rank = "Street Cleaner"
-        
-    return rank, int(score)
 
 def parse_profile(profile_url):
     try:
@@ -66,37 +37,29 @@ def parse_profile(profile_url):
     for div in soup.find_all("div", class_=["col-md-6", "col-sm-3"]):
         h4 = div.find("h4")
         if h4:
-            # Buscar no nó seguinte ou dentro do div
             content_div = div.find("div", class_="display") or div.find("div", class_="pdata")
             if content_div:
                 key = h4.get_text(strip=True).lower().replace(" ", "_").replace("?", "")
                 val_text = content_div.get_text(strip=True)
                 data[key] = val_text
-            else:
-                # Pode estar direto text-align etc
-                # Tratamento básico para fallback
-                pass
                 
-    # Fallback se a estrutura pdata/display falhar, varremos text nodes:
     if not data:
         for div in soup.find_all("div", class_="col-md-6"):
             text_parts = list(div.stripped_strings)
-            # Geralmente o formato é "Weekly TS" "783,730,354"
             if len(text_parts) >= 2:
                 key = text_parts[0].lower().replace(" ", "_").replace("?", "")
-                # Valores com pipes Ex: Last Players Killed | Cancerbero | ...
                 val = "".join(text_parts[1:])
                 data[key] = val
                 
     return data
 
 def scrape_and_push():
-    logging.info("Iniciando scrape na página do clã para obter links de perfil...")
+    logging.info("Iniciando scrape...")
     try:
         resp = requests.get(CLAN_URL, headers={"User-Agent": USER_AGENT}, timeout=20)
         resp.raise_for_status()
     except Exception:
-        logging.exception("Erro ao buscar a página do clã")
+        logging.exception("Erro ao buscar a pagina do cla")
         return
         
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -107,183 +70,79 @@ def scrape_and_push():
             break
             
     if not table:
-        logging.error("Tabela de membros não encontrada")
+        logging.error("Tabela nao encontrada")
         return
         
     members = []
-    # Coleta username e href de cada um
     for a in table.find_all("a", href=re.compile(r"/profile/view/")):
         name = a.get_text(strip=True)
         if name:
             members.append({"username": name, "url": BASE_URL + a["href"]})
         
     now_iso = datetime.now(tz=BRAZIL_TZ).isoformat()
-    logging.info(f"Encontrados {len(members)} membros no clã. Iniciando scraping por perfil...")
+    profiles_data = {}
     
     for m in members:
-        logging.info(f"Scraping perfil de {m['username']} ({m['url']})")
         pdata = parse_profile(m["url"])
+        safe_username_key = requests.utils.requote_uri(m["username"]).replace(".", "%2E")
         
-        # Mapeamento e limpeza de dados
+        raw_weekly_ts = parse_int(pdata.get("weekly_ts", "0"))
+        raw_clan_weekly_ts = parse_int(pdata.get("clan_weekly_ts", "0"))
+        
+        raw_weekly_loots = parse_int(pdata.get("weekly_loots", "0"))
+        raw_clan_weekly_loots = parse_int(pdata.get("clan_weekly_loots", "0"))
+
         user_data = {
             "username": m["username"],
             "collected_at": now_iso,
-            
-            # --- TS Records ---
-            "weekly_ts": parse_int(pdata.get("weekly_ts", "0")),
-            "clan_weekly_ts": parse_int(pdata.get("clan_weekly_ts", "0")),
-            "exp_since_death": parse_int(pdata.get("exp_since_death", "0")),
+
+            "weekly_ts": max(raw_weekly_ts, raw_clan_weekly_ts),
+            "clan_weekly_ts": max(raw_weekly_ts, raw_clan_weekly_ts),
             "all_time_ts": parse_int(pdata.get("all_time_ts", "0")),
             "total_exp": parse_int(pdata.get("total_exp", "0")),
-            "expected_loss_on_death": parse_int(pdata.get("expected_loss_on_death", "0")),
-            
-            # --- TPK Records ---  (Coletados mas você pode optar por não exibir no frontend ainda)
-            "daily_tpk": parse_int(pdata.get("daily_tpk", "0")),
-            "weekly_tpk": parse_int(pdata.get("weekly_tpk", "0")),
-            "clan_weekly_tpk": parse_int(pdata.get("clan_weekly_tpk", "0")),
-            "all_time_tpk": parse_int(pdata.get("all_time_tpk", "0")),
-            "last_players_killed": pdata.get("last_players_killed", ""),
-            "last_hit_by": pdata.get("last_hit_by", ""),
-            
-            # --- Loot Records ---
-            "weekly_loots": parse_int(pdata.get("weekly_loots", "0")),
+
+            "weekly_loots": max(raw_weekly_loots, raw_clan_weekly_loots),
             "all_time_loots": parse_int(pdata.get("all_time_loots", "0")),
-            "clan_weekly_loots": parse_int(pdata.get("clan_weekly_loots", "0")),
+            "clan_weekly_loots": max(raw_weekly_loots, raw_clan_weekly_loots),
             "all_time_clan_loots": parse_int(pdata.get("all_time_clan_loots", "0")),
-            
-            # --- Misc ---
+
             "last_clan_join": pdata.get("last_clan_join", "")
         }
         
-        # Rank / Hierarquia
-        months = 0
-        try:
-            if user_data["last_clan_join"]:
-                # Formato usualmente retornado M/D/Y ou MM/DD/YYYY
-                join_date = datetime.strptime(user_data["last_clan_join"], "%m/%d/%Y") 
-                # Considera tempo local vs braziltz - ok usar naive pra dias
-                months = (datetime.now() - join_date).days // 30
-        except Exception as e:
-            # Em caso da data não estar em um formato esperado
-            pass
-            
-        rank, score = get_rank_and_score(months, user_data["all_time_clan_loots"])
-        user_data["rank"] = rank
-        user_data["rank_score"] = score
-        
-        from datetime import timedelta
+        profiles_data[safe_username_key] = user_data
 
-        adjusted_time = datetime.now(tz=BRAZIL_TZ) - timedelta(hours=9)
-        today_str = adjusted_time.strftime("%Y-%m-%d")
-        safe_username_key = requests.utils.requote_uri(m["username"])
+    requests.put(FIREBASE_DB_URL.rstrip("/") + "/profiles.json", json=profiles_data, timeout=20)
+    
+    adjusted_time = datetime.now(tz=BRAZIL_TZ) - timedelta(hours=8)
+    today_str = adjusted_time.strftime("%Y-%m-%d")
+    
+    daily_url = FIREBASE_DB_URL.rstrip("/") + f"/daily/{today_str}.json"
+    try:
+        resp = requests.get(daily_url, timeout=10)
+        daily_json = resp.json()
+        if not daily_json:
+            logging.info(f"Criando snapshot diário para {today_str}")
+            requests.put(daily_url, json=profiles_data, timeout=20)
+    except Exception as e:
+        logging.error(f"Erro no daily snapshot: {e}")
 
-current_hour = datetime.now(tz=BRAZIL_TZ).strftime("%H")
-        snapshot_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots/{safe_username_key}/{today_str}.json"
-        
-        snapshot_data = None
-        try:
-            snap_resp = requests.get(snapshot_url, timeout=10)
-            if snap_resp.status_code == 200 and snap_resp.json():
-                snapshot_data = snap_resp.json()
-        except:
-            pass
+    start_of_week = adjusted_time - timedelta(days=adjusted_time.weekday())
+    week_str = start_of_week.strftime("%Y-%m-%d")
+    
+    weekly_url = FIREBASE_DB_URL.rstrip("/") + f"/weekly/{week_str}.json"
+    try:
+        resp = requests.get(weekly_url, timeout=10)
+        weekly_json = resp.json()
+        if not weekly_json:
+            logging.info(f"Criando snapshot semanal para {week_str}")
+            requests.put(weekly_url, json=profiles_data, timeout=20)
+    except Exception as e:
+        logging.error(f"Erro no weekly snapshot: {e}")
 
-        # Adiciona histórico das 09h como ponto inicial (diário).
-        # Se os dados estiverem bagunçados/incompletos (sem loot_pessoal) eles se auto-corrigem aqui
-        if snapshot_data and "all_time_loots" not in snapshot_data:
-            snapshot_data["all_time_loots"] = user_data.get("all_time_loots", 0)
-            try:
-                requests.put(snapshot_url, json=snapshot_data, timeout=10)
-            except:
-                pass
-
-        if not snapshot_data:
-            # Se não houver snapshot de hoje é pq acabou de virar 09:00. O snapshot_data vai ser a foto EXATA do momento
-            snapshot_data = {
-                "all_time_ts": user_data.get("all_time_ts", 0),
-                "all_time_clan_loots": user_data.get("all_time_clan_loots", 0),
-                "all_time_loots": user_data.get("all_time_loots", 0)
-            }
-            try:
-                requests.put(snapshot_url, json=snapshot_data, timeout=10)
-            except:
-                pass
-                
-        # Salva o snap da HORA dentro do dia (histórico do usuário para traçar crescimento no detalhe se quiser)
-        hour_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots_history/{safe_username_key}/{today_str}/{current_hour}.json"
-        try:
-            requests.put(hour_url, json={
-                "all_time_ts": user_data.get("all_time_ts", 0),
-                "all_time_clan_loots": user_data.get("all_time_clan_loots", 0),
-                "all_time_loots": user_data.get("all_time_loots", 0)
-            }, timeout=10)
-        except:
-            pass
-
-        daily_ts = user_data.get("all_time_ts", 0) - snapshot_data.get("all_time_ts", user_data.get("all_time_ts", 0))
-        daily_loot = user_data.get("all_time_clan_loots", 0) - snapshot_data.get("all_time_clan_loots", user_data.get("all_time_clan_loots", 0))
-        
-        user_data["daily_ts_calc"] = daily_ts
-        user_data["daily_loot_calc"] = daily_loot
-        
-        start_of_week = adjusted_time - timedelta(days=adjusted_time.weekday())
-        week_str = start_of_week.strftime("%Y-%m-%d")
-        week_snapshot_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots_weekly/{safe_username_key}/{week_str}.json"
-        
-        week_snapshot_data = None
-        try:
-            wsnap_resp = requests.get(week_snapshot_url, timeout=10)
-            if wsnap_resp.status_code == 200:
-                week_snapshot_data = wsnap_resp.json()
-        except:
-            pass
-
-        if not week_snapshot_data:
-            week_snapshot_data = {
-                "all_time_ts": user_data.get("all_time_ts", 0),
-                "all_time_clan_loots": user_data.get("all_time_clan_loots", 0),
-                "all_time_loots": user_data.get("all_time_loots", 0)
-            }
-            try:
-                requests.put(week_snapshot_url, json=week_snapshot_data, timeout=10)
-            except:
-                pass
-
-        weekly_personal_loot_calc = user_data.get("all_time_loots", 0) - week_snapshot_data.get("all_time_loots", user_data.get("all_time_loots", 0))
-        weekly_clan_loot_calc = user_data.get("all_time_clan_loots", 0) - week_snapshot_data.get("all_time_clan_loots", user_data.get("all_time_clan_loots", 0))
-        
-        user_data["weekly_personal_loot_calc"] = weekly_personal_loot_calc
-        user_data["weekly_clan_loot_calc"] = weekly_clan_loot_calc
-
-        url = FIREBASE_DB_URL.rstrip('/') + f"/profiles/{safe_username_key}.json"
-        try:
-            requests.put(url, json=user_data, timeout=10)
-        except Exception as e:
-            logging.error(f"Erro ao salvar DB para {m['username']}: {e}")
-
-        hist_url = FIREBASE_DB_URL.rstrip('/') + f"/historical/{today_str}/{safe_username_key}.json"
-        try:
-            hist_data = {
-                "daily_ts": daily_ts,
-                "daily_loot": daily_loot,
-                "total_ts": user_data.get("all_time_ts", 0),
-                "total_clan_loots": user_data.get("all_time_clan_loots", 0),
-                "timestamp": now_iso
-            }
-            requests.put(hist_url, json=hist_data, timeout=10)
-        except Exception as e:
-            logging.error(f"Erro ao salvar historico para {m['username']}: {e}")
-
-    logging.info("Scrape de perfis concluido com sucesso.")
+    logging.info("Scrape concluído.")
 
 if __name__ == "__main__":
-    logging.info("Executando a primeira coleta...")
     scrape_and_push()
-    
-    logging.info("Iniciando o agendador: coleta a cada 5 minutos. Pressione Ctrl+C para sair.")
     scheduler = BlockingScheduler()
-    scheduler.add_job(scrape_and_push, 'interval', minutes=5)
-    try:
-        scheduler.start()
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Agendador interrompido.")
+    scheduler.add_job(scrape_and_push, "interval", minutes=5)
+    scheduler.start()

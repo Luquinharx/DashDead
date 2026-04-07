@@ -11,7 +11,7 @@ import { Edit3, Trash2, Save, X, Search, UserPlus, Gift, Check, ShieldAlert, Loa
 import { cn } from '../../lib/utils';
 import CasinoSettings from './CasinoSettings';
 
-const CARGOS = ['Member', 'Officer', 'Sub-Leader', 'Leader'];
+const CARGOS = ['Leader', 'High Warden', 'Blade Master', 'Guardian', 'Gate Keeper', 'Street Cleaner'];
 
 
 // Auth secundário para criar usuários sem deslogar o admin
@@ -27,8 +27,12 @@ export default function GerenciarUsuarios() {
   const { usernames: scrapedNames } = useScrapedUsernames();
   const { profiles } = useProfilesData();
 
+  const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
+  const isOfficerOnly = profile?.cargo === 'Officer';
+  const isAdmin = profile?.cargo === 'Leader' || profile?.cargo === 'Sub-Leader' || isSuperUser || isOfficerOnly;
+
   // Tabs
-  const [activeTab, setActiveTab] = useState<'members' | 'spins' | 'casino'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'spins' | 'casino'>(isOfficerOnly ? 'spins' : 'members');
 
   // Members State
   const [usuarios, setUsuarios] = useState<(UserProfile & { docId: string })[]>([]);
@@ -54,7 +58,7 @@ export default function GerenciarUsuarios() {
   const [cadNickJogo, setCadNickJogo] = useState('');
   const [cadDiscord, setCadDiscord] = useState('');
   const [cadDataEntrada, setCadDataEntrada] = useState('');
-  const [cadCargo, setCadCargo] = useState('Member');
+  const [cadCargo, setCadCargo] = useState('Street Cleaner');
   const [cadError, setCadError] = useState('');
   const [cadSuccess, setCadSuccess] = useState('');
   const [cadLoading, setCadLoading] = useState(false);
@@ -267,9 +271,6 @@ export default function GerenciarUsuarios() {
     currentPage * itemsPerPage
   );
 
-  // só leaders podem gerenciar
-  const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
-  const isAdmin = profile?.cargo === 'Leader' || profile?.cargo === 'Sub-Leader' || isSuperUser;
 
   // Auto-promote superuser if needed
   useEffect(() => {
@@ -316,15 +317,17 @@ export default function GerenciarUsuarios() {
           </div>
 
 <div className="flex gap-2 bg-stone-900/50 p-1 rounded-sm border border-white/5 overflow-x-auto">
-              <button
-                onClick={() => setActiveTab('members')}
-                className={cn(
-                    "px-6 py-2 rounded-sm text-sm uppercase tracking-widest font-bold transition-all whitespace-nowrap",
-                    activeTab === 'members' ? "bg-red-900/30 text-red-500 border border-red-900/50 shadow-[0_0_10px_rgba(220,38,38,0.2)]" : "text-stone-500 hover:text-stone-300 hover:bg-white/5"
-                )}
-              >
-                  Members
-              </button>
+              {!isOfficerOnly && (
+                <button
+                  onClick={() => setActiveTab('members')}
+                  className={cn(
+                      "px-6 py-2 rounded-sm text-sm uppercase tracking-widest font-bold transition-all whitespace-nowrap",
+                      activeTab === 'members' ? "bg-red-900/30 text-red-500 border border-red-900/50 shadow-[0_0_10px_rgba(220,38,38,0.2)]" : "text-stone-500 hover:text-stone-300 hover:bg-white/5"
+                  )}
+                >
+                    Members
+                </button>
+              )}
               <button
                 onClick={() => setActiveTab('spins')}
                 className={cn(
@@ -334,17 +337,19 @@ export default function GerenciarUsuarios() {
               >
                   Slot Spins
               </button>
-              <button
-                onClick={() => setActiveTab('casino')}
-                className={cn(
-                    "px-6 py-2 rounded-sm text-sm uppercase tracking-widest font-bold transition-all whitespace-nowrap",
-                    activeTab === 'casino' ? "bg-red-900/30 text-red-500 border border-red-900/50 shadow-[0_0_10px_rgba(220,38,38,0.2)]" : "text-stone-500 hover:text-stone-300 hover:bg-white/5"
-                )}
-              >
-                  <span className="flex items-center gap-2">
-                    <Settings className="w-4 h-4" /> CASINO CONFIG
-                  </span>
-              </button>
+              {!isOfficerOnly && (
+                <button
+                  onClick={() => setActiveTab('casino')}
+                  className={cn(
+                      "px-6 py-2 rounded-sm text-sm uppercase tracking-widest font-bold transition-all whitespace-nowrap",
+                      activeTab === 'casino' ? "bg-red-900/30 text-red-500 border border-red-900/50 shadow-[0_0_10px_rgba(220,38,38,0.2)]" : "text-stone-500 hover:text-stone-300 hover:bg-white/5"
+                  )}
+                >
+                    <span className="flex items-center gap-2">
+                      <Settings className="w-4 h-4" /> CASINO CONFIG
+                    </span>
+                </button>
+              )}
           </div>
         </header>
 
@@ -475,7 +480,6 @@ export default function GerenciarUsuarios() {
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('email')}><div className="flex items-center">Email {renderSortIcon('email')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('discord')}><div className="flex items-center">Cargos Discord {renderSortIcon('discord')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('cargo')}><div className="flex items-center">Access {renderSortIcon('cargo')}</div></th>
-                        <th className="px-6 py-4 font-normal hover:text-white transition-colors cursor-pointer" onClick={() => handleSort('dataEntrada')}><div className="flex items-center">Clan Month {renderSortIcon('dataEntrada')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('rank')}><div className="flex items-center">Scrap Rank {renderSortIcon('rank')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('extraSpins')}><div className="flex items-center">Balance {renderSortIcon('extraSpins')}</div></th>
                         <th className="px-6 py-4 text-center font-normal">Actions</th>
@@ -511,9 +515,6 @@ export default function GerenciarUsuarios() {
                             <td className="px-6 py-3 text-center">
                                 <span className="text-xs text-stone-500">-</span>
                             </td>
-                            <td className="px-6 py-3 text-center">
-                                <span className="text-xs text-stone-500">-</span>
-                            </td>
                             <td className="px-6 py-3">
                                 <input 
                                     type="number" 
@@ -544,9 +545,6 @@ export default function GerenciarUsuarios() {
                                 )}>
                                 {u.cargo}
                                 </span>
-                            </td>
-                            <td className="px-6 py-3 text-stone-400 text-xs tracking-wider">
-                                {u.dataEntrada?.toDate?.() ? u.dataEntrada.toDate().toLocaleDateString('pt-BR') : <span className="text-stone-700">—</span>}
                             </td>
                             <td className="px-6 py-3">
                                 <RankBadge rank={profiles.find(p => p.username === u.nickJogo)?.rank || 'Street Cleaner'} />

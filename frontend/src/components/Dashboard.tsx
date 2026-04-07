@@ -8,10 +8,10 @@ import { cn } from '../lib/utils';
 import { RankBadge } from './RankBadge';
 
 
-type SortKey = keyof MemberData | `week_${number}`;
+type SortKey = keyof MemberData | 'clanWeeklyLoot' | `week_`;
 
 export default function Dashboard() {
-  const { data, numWeekCols, weekLabels, loading, error, latestCollectedAt, updatedCount, totalCount } = useClanData();
+  const { data, loading, error, latestCollectedAt, updatedCount, totalCount } = useClanData();
   const { profiles } = useProfilesData();
 
   function formatCollectedAt(iso: string): string {
@@ -61,22 +61,36 @@ export default function Dashboard() {
     }
 
     result.sort((a, b) => {
-      let av = 0, bv = 0;
-      if (String(sortKey).startsWith('week_')) {
-        const n = parseInt(String(sortKey).split('_')[1], 10) - 1; // 0-based index
-        av = (a.weeklyValues && a.weeklyValues.length > n) ? a.weeklyValues[n] : 0;
-        bv = (b.weeklyValues && b.weeklyValues.length > n) ? b.weeklyValues[n] : 0;
-      } else if (sortKey === 'currentAll') {
-        // Use all_time_loots from profiles data (user's personal total)
-        const profileA = profiles.find(p => p.username.toLowerCase() === a.username.toLowerCase());
-        const profileB = profiles.find(p => p.username.toLowerCase() === b.username.toLowerCase());
-        av = Number(profileA?.all_time_loots ?? a.currentAll ?? 0);
-        bv = Number(profileB?.all_time_loots ?? b.currentAll ?? 0);
+      let av: number | string = 0, bv: number | string = 0;
+      const profileA = profiles.find(p => p.username.toLowerCase() === a.username.toLowerCase());
+      const profileB = profiles.find(p => p.username.toLowerCase() === b.username.toLowerCase());
+      
+      const aSortKeyStr = String(sortKey);
+      
+      if (aSortKeyStr === 'username' || aSortKeyStr === 'rank') {
+         av = String(a[aSortKeyStr as keyof MemberData] || "").toLowerCase();
+         bv = String(b[aSortKeyStr as keyof MemberData] || "").toLowerCase();
+         return sortDesc ? (av < bv ? 1 : av > bv ? -1 : 0) : (av > bv ? 1 : av < bv ? -1 : 0);
+      } else if (aSortKeyStr === 'currentAll') {
+        av = Number(profileA?.all_time_loots || a.currentAll || 0);
+        bv = Number(profileB?.all_time_loots || b.currentAll || 0);
+      } else if (aSortKeyStr === 'weeklyToDate') {
+        av = Math.max(Number(profileA?.weekly_loots || a.weeklyToDate || 0), Number(profileA?.clan_weekly_loots || 0));
+        bv = Math.max(Number(profileB?.weekly_loots || b.weeklyToDate || 0), Number(profileB?.clan_weekly_loots || 0));
+      } else if (aSortKeyStr === 'clanWeeklyLoot') {
+        av = Math.max(Number(profileA?.clan_weekly_loots || 0), Number(profileA?.weekly_loots || a.weeklyToDate || 0));
+        bv = Math.max(Number(profileB?.clan_weekly_loots || 0), Number(profileB?.weekly_loots || b.weeklyToDate || 0));
+      } else if (aSortKeyStr === 'dailyLoot') {
+        av = Number(a.dailyLoot || 0);
+        bv = Number(b.dailyLoot || 0);
+      } else if (aSortKeyStr === 'streak') {
+        av = Number(a.streak || 0);
+        bv = Number(b.streak || 0);
       } else {
-        av = Number(a[sortKey as keyof MemberData] ?? 0);
-        bv = Number(b[sortKey as keyof MemberData] ?? 0);
+        av = Number(a[aSortKeyStr as keyof MemberData] || 0);
+        bv = Number(b[aSortKeyStr as keyof MemberData] || 0);
       }
-      return sortDesc ? (bv - av) : (av - bv);
+      return sortDesc ? (Number(bv) - Number(av)) : (Number(av) - Number(bv));
     });
 
     return result;
@@ -283,92 +297,98 @@ export default function Dashboard() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-stone-500 uppercase bg-black border-b border-white/10 font-serif tracking-widest">
                 <tr>
-                  <th className="px-6 py-5 font-bold">Username</th>
-                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group hidden md:table-cell" onClick={() => handleSort('currentAll')}>
-                    Rank
-                  </th>
-                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group" onClick={() => handleSort('currentAll')}>
-                    All-time <SortIcon columnKey="currentAll" />
-                  </th>
-                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group" onClick={() => handleSort('dailyLoot')}>
-                    Daily Loot <SortIcon columnKey="dailyLoot" />
-                  </th>
-                  {Array.from({ length: numWeekCols }).map((_, i) => {
-                    const w = i + 1;
-                    return (
-                      <th key={w} className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group whitespace-nowrap" onClick={() => handleSort(`week_${w}`)}>
-                        {weekLabels[i] || `WK ${w}`} <SortIcon columnKey={`week_${w}`} />
-                      </th>
-                    );
-                  })}
-                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group" onClick={() => handleSort('streak')}>
-                    Wk Streak <SortIcon columnKey="streak" />
-                  </th>
+                  <th className="px-6 py-5 font-bold cursor-pointer hover:text-white transition-colors select-none group focus:outline-none" onClick={() => handleSort('username')}>Username <SortIcon columnKey="username" /></th>
+                  <th className="px-6 py-5 font-bold text-center hidden md:table-cell cursor-pointer hover:text-white transition-colors select-none group focus:outline-none" onClick={() => handleSort('rank')}>Rank <SortIcon columnKey="rank" /></th>
+                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group focus:outline-none" onClick={() => handleSort('dailyLoot')}>Daily Loot <SortIcon columnKey="dailyLoot" /></th>
+                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group focus:outline-none" onClick={() => handleSort('weeklyToDate')}>Weekly Loot <SortIcon columnKey="weeklyToDate" /></th>
+                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group focus:outline-none" onClick={() => handleSort('clanWeeklyLoot')}>Clan Weekly Loot <SortIcon columnKey="clanWeeklyLoot" /></th>
+                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group focus:outline-none" onClick={() => handleSort('currentAll')}>All Time Loot <SortIcon columnKey="currentAll" /></th>
+                  <th className="px-6 py-5 font-bold text-right cursor-pointer hover:text-white transition-colors select-none group focus:outline-none" onClick={() => handleSort('streak')}>WK Streak <SortIcon columnKey="streak" /></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 font-mono">
                 {paginatedData.map((r, idx) => {
-                  const absoluteIdx = (currentPage - 1) * itemsPerPage + idx;   
-                  const isHighlight = (r.weeklyValues && r.weeklyValues.length && r.weeklyValues[r.weeklyValues.length-1] > 5000);
+                  const absoluteIdx = (currentPage - 1) * itemsPerPage + idx;
+                  const profile = profiles.find((p) => p.username.toLowerCase() === r.username.toLowerCase());
+                  
+                  const username = r.username;
+                  const rank = r.rank;
+                  const dailyLoot = Number(r.dailyLoot || 0);
+                  const rawWeeklyLoot = Number(profile?.weekly_loots || 0);
+                  const rawClanWeeklyLoot = Number(profile?.clan_weekly_loots || 0);
+                  const weeklyLoot = Math.max(rawWeeklyLoot, rawClanWeeklyLoot);
+                  const clanWeeklyLoot = Math.max(rawClanWeeklyLoot, rawWeeklyLoot);
+                  const allTimeLoot = Number(profile?.all_time_loots || r.currentAll || 0);
+                  const streak = Number(r.streak || 0);
+                  const rawClanWeeklyTs = Number(profile?.clan_weekly_ts || 0);
+                  const rawWeeklyTs = Number(profile?.weekly_ts || 0);
+                  const clanWeeklyTs = Math.max(rawClanWeeklyTs, rawWeeklyTs);
+                  const weeklyTs = Math.max(rawClanWeeklyTs, rawWeeklyTs);
+                                    const isClanEventHighlight = clanWeeklyLoot >= 5000 || clanWeeklyTs >= 3000000000;
+                  
+                  const dlText = (dailyLoot >= 0 ? '+' : '') + dailyLoot.toLocaleString('pt-BR');
+                  const stText = (streak > 0 ? '+' + streak : streak.toString());
 
-                  const dl = Number(r.dailyLoot || 0);
-                  const dlText = (dl >= 0 ? '+' : '') + dl.toLocaleString('pt-BR');
+                  const isPowerRaw =
+                    (weeklyLoot >= 5000) ||
+                    (weeklyTs >= 3_000_000_000);
 
-                  const st = Number(r.streak || 0);
-                  const stText = (st > 0 ? '+' + st : st.toString());
+                  
+
+                  // Cores para as TRs
+                  const rowColor = (isClanEventHighlight && isPowerRaw)
+                    ? 'bg-gradient-to-r from-red-950/20 to-yellow-950/20 hover:from-red-950/30 hover:to-yellow-950/30'
+                    : isClanEventHighlight
+                    ? 'bg-red-900/20 hover:bg-red-900/30'
+                    : isPowerRaw
+                    ? 'bg-yellow-900/20 hover:bg-yellow-900/30'
+                    : '';
 
                   return (
-                    <tr
-                      key={r.username}
-                      className={cn(
-                        "transition-colors hover:bg-white/5",
-                        isHighlight && "bg-red-950/10 hover:bg-red-950/20"      
-                      )}
-                    >
+                    <tr key={username} className={cn(
+                        'transition-colors hover:bg-white/5 border-b border-white/5',
+                        rowColor
+                      )}>
                       <td className="px-6 py-4 font-bold text-white whitespace-nowrap flex items-center gap-3">
                         <span className="text-stone-600 w-6 text-xs text-right font-serif">{absoluteIdx + 1}.</span>
-                        <span className={cn(
-                          "inline-block w-1.5 h-1.5 rotate-45 flex-shrink-0",   
-                          r.isUpdated ? "bg-red-500 shadow-[0_0_5px_red]" : "bg-stone-700"
-                        )} title={r.isUpdated ? 'Updated' : 'Pending'} />       
+                        
+                        {/* Emojis ficam aqui antes do nome, com title */}
+                        {isClanEventHighlight && (
+                          <span title="Desempenho no Clã (5k+ Clan Loot / 3B+ Clan TS)" className="cursor-help"><Flame className="w-4 h-4 text-orange-500" /></span>
+                        )}
+                        {isPowerRaw && (
+                          <span 
+                            title="Poder Pessoal (5k+ Weekly Loot / 3B+ Weekly TS)" 
+                            className="text-yellow-400 text-sm cursor-help"
+                          >⚡</span>
+                        )}
 
-                        <Link to={`/dashboard?user=${encodeURIComponent(r.username)}`} className="tracking-wide hover:text-red-500 hover:underline transition-all">
-                            {r.username}
+                        <Link to={`/dashboard?user=${encodeURIComponent(username)}`} className="tracking-wide hover:text-red-500 hover:underline transition-all">
+                            {username}
                         </Link>
-
-                        {isHighlight && <Flame className="w-3.5 h-3.5 text-red-600" />}
                       </td>
-                      <td className="px-6 py-4 text-right text-stone-300 hidden md:table-cell">      
-                        <RankBadge rank={r.rank} />
-                      </td>
-                      <td className="px-6 py-4 text-right text-stone-300">      
-                        {(() => {
-                          const profile = profiles.find(p => p.username.toLowerCase() === r.username.toLowerCase());
-                          const value = profile?.all_time_loots ?? r.currentAll ?? 0;
-                          return Number(value).toLocaleString('pt-BR');
-                        })()}
+                      <td className="px-6 py-4 text-center text-stone-300 hidden md:table-cell">
+                        <RankBadge rank={rank} />
                       </td>
                       <td className={cn(
-                        "px-6 py-4 text-right font-bold",
-                        dl > 0 ? "text-emerald-500" : dl < 0 ? "text-red-500" : 
-"text-stone-600"
+                        "px-6 py-4 text-right font-bold w-28",
+                        dailyLoot > 0 ? "text-emerald-500" : dailyLoot < 0 ? "text-red-500" : "text-stone-600"
                       )}>
                         {dlText}
                       </td>
-
-                      {Array.from({ length: numWeekCols }).map((_, i) => {      
-                        const val = (r.weeklyValues && r.weeklyValues.length > i) ? r.weeklyValues[i] : 0;
-                        return (
-                          <td key={i} className="px-6 py-4 text-right text-stone-400">
-                            {val.toLocaleString('pt-BR')}
-                          </td>
-                        );
-                      })}
-
+                      <td className="px-6 py-4 text-right text-stone-400 w-32 hidden sm:table-cell">
+                        {weeklyLoot.toLocaleString('pt-BR')}
+                      </td>
+                      <td className="px-6 py-4 text-right text-stone-300 font-bold w-32 border-l border-white/5 bg-stone-900/10">
+                        {clanWeeklyLoot.toLocaleString('pt-BR')}
+                      </td>
+                      <td className="px-6 py-4 text-right text-stone-300 font-bold">
+                        {allTimeLoot.toLocaleString('pt-BR')}
+                      </td>
                       <td className="px-6 py-4 text-right">
                         <span className={cn(
                           "inline-flex items-center justify-center px-2 py-0.5 rounded-sm text-xs font-bold min-w-[2.5rem] tracking-wider border",
-                          st > 0 ? "bg-emerald-950/30 text-emerald-500 border-emerald-900/30" : st < 0 ? "bg-red-950/30 text-red-500 border-red-900/30" : "bg-stone-900 text-stone-600 border-stone-800"
+                          streak > 0 ? "bg-emerald-950/30 text-emerald-500 border-emerald-900/30" : streak < 0 ? "bg-red-950/30 text-red-500 border-red-900/30" : "bg-stone-900 text-stone-600 border-stone-800"
                         )}>
                           {stText}
                         </span>
@@ -378,8 +398,8 @@ export default function Dashboard() {
                 })}
                 {paginatedData.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-stone-600 font-serif uppercase tracking-widest">
-                      No operatives found.
+                    <td colSpan={7} className="px-6 py-12 text-center text-stone-600 font-serif uppercase tracking-widest">
+                      Não há contas para exibir.
                     </td>
                   </tr>
                 )}

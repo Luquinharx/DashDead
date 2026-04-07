@@ -4,12 +4,20 @@ import { useAuth } from '../../hooks/useAuth';
 import { useClanMemberData } from '../../hooks/useClanMemberData';
 import { useCasinoConfig } from '../../hooks/useCasinoConfig';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, addDoc, Timestamp, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, Timestamp, updateDoc, doc, increment } from 'firebase/firestore';
 import { Gift } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Navigate } from 'react-router-dom';
 
 export default function Roleta() {
   const { profile, refreshProfile } = useAuth();
+  const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
+  const isAllowed = isSuperUser || profile?.cargo === 'High Warden';
+
+  if (profile && !isAllowed) {
+    return <Navigate to="/" replace />;
+  }
+
   const { stats } = useClanMemberData(profile?.nickJogo || undefined);
   const { config } = useCasinoConfig();
   const [spinning, setSpinning] = useState(false);
@@ -93,7 +101,8 @@ export default function Roleta() {
     load();
   }, [profile, spinning, startOfPrizeWeek]);
 
-  const girosDisponiveis = Math.max(0, (weeklyTotal - girosUsados) + extraSpins);
+  const girosRestantesSemanais = Math.max(0, weeklyTotal - girosUsados);
+  const girosDisponiveis = Math.min(3, girosRestantesSemanais + extraSpins);
 
   const girar = useCallback(async () => {
     if (spinning || girosDisponiveis <= 0 || !profile?.userId) return;
@@ -142,7 +151,7 @@ export default function Roleta() {
       const hasWeeklyAvailable = weeklyTotal > girosUsados;
       if (!hasWeeklyAvailable && extraSpins > 0) {
         await updateDoc(doc(db, 'usuarios', profile.userId), {
-            extraSpins: extraSpins - 1
+            extraSpins: increment(-1)
         });
       }
 
@@ -151,9 +160,10 @@ export default function Roleta() {
     }
     
     setResult(selected);
-    setSpinning(false);
+    setGirosUsados(prev => prev + 1);
     await refreshProfile();
-  }, [spinning, girosDisponiveis, profile, refreshProfile, config.prizes]);
+    setSpinning(false);
+  }, [spinning, girosDisponiveis, profile, refreshProfile, config.prizes, girosUsados, extraSpins, weeklyTotal]);
 
   return (
     <div className="min-h-screen bg-black text-stone-200 font-serif selection:bg-red-900/30">
@@ -248,7 +258,7 @@ export default function Roleta() {
                       : "bg-stone-900 text-stone-700 cursor-not-allowed border-stone-800"
                 )}
               >
-                {spinning ? 'SPINNING...' : 'SPIN'}
+                {spinning ? 'ADICIONANDO...' : 'ADICIONAR ITEM'}
             </button>
 
              {/* Result Display */}

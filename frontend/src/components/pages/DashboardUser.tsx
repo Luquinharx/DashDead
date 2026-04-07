@@ -274,7 +274,7 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
                   <h2 className="text-lg font-serif font-bold text-stone-300 mb-6 uppercase tracking-wider">TS Daily Activity</h2>
                   <div className="flex items-center justify-center h-[300px] bg-black rounded">
                     <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={[{ data: new Date().toISOString().slice(0,10), valor: memberTSData.weekly_ts }]}>
+                    <AreaChart data={[{ data: new Date().toISOString().slice(0,10), valor: memberTSData.daily_ts_calc || 0 }]}>
                         <defs>
                           <linearGradient id="colorTSDaily" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>

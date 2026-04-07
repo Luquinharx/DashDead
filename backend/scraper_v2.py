@@ -171,34 +171,77 @@ def scrape_and_push():
         user_data["rank"] = rank
         user_data["rank_score"] = score
         
-        # Lógica de Snapshot Diário para Gráficos
-        today_str = datetime.now(tz=BRAZIL_TZ).strftime("%Y-%m-%d")
+        from datetime import timedelta
+
+        adjusted_time = datetime.now(tz=BRAZIL_TZ) - timedelta(hours=9)
+        today_str = adjusted_time.strftime("%Y-%m-%d")
+        yesterday_str = (adjusted_time - timedelta(days=1)).strftime("%Y-%m-%d")
         safe_username_key = requests.utils.requote_uri(m["username"])
-        
+
         snapshot_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots/{safe_username_key}/{today_str}.json"
+        yesterday_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots/{safe_username_key}/{yesterday_str}.json"
+        
         snapshot_data = None
         try:
             snap_resp = requests.get(snapshot_url, timeout=10)
-            if snap_resp.status_code == 200:
+            if snap_resp.status_code == 200 and snap_resp.json():
                 snapshot_data = snap_resp.json()
-        except Exception as e:
-            logging.error(f"Erro ao buscar snapshot para {m['username']}: {e}")
-            
+        except:
+            pass
+
         if not snapshot_data:
-            snapshot_data = {
-                "all_time_ts": user_data.get("all_time_ts", 0),
-                "all_time_clan_loots": user_data.get("all_time_clan_loots", 0)
-            }
+            try:
+                yd_resp = requests.get(yesterday_url, timeout=10)
+                if yd_resp.status_code == 200 and yd_resp.json():
+                    snapshot_data = yd_resp.json()
+            except:
+                pass
+            
+            if not snapshot_data:
+                snapshot_data = {
+                    "all_time_ts": user_data.get("all_time_ts", 0),
+                    "all_time_clan_loots": user_data.get("all_time_clan_loots", 0),
+                    "all_time_loots": user_data.get("all_time_loots", 0)
+                }
             try:
                 requests.put(snapshot_url, json=snapshot_data, timeout=10)
-            except Exception as e:
-                logging.error(f"Erro ao salvar snapshot para {m['username']}: {e}")
+            except:
+                pass
 
         daily_ts = user_data.get("all_time_ts", 0) - snapshot_data.get("all_time_ts", user_data.get("all_time_ts", 0))
         daily_loot = user_data.get("all_time_clan_loots", 0) - snapshot_data.get("all_time_clan_loots", user_data.get("all_time_clan_loots", 0))
         
         user_data["daily_ts_calc"] = daily_ts
         user_data["daily_loot_calc"] = daily_loot
+        
+        start_of_week = adjusted_time - timedelta(days=adjusted_time.weekday())
+        week_str = start_of_week.strftime("%Y-%m-%d")
+        week_snapshot_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots_weekly/{safe_username_key}/{week_str}.json"
+        
+        week_snapshot_data = None
+        try:
+            wsnap_resp = requests.get(week_snapshot_url, timeout=10)
+            if wsnap_resp.status_code == 200:
+                week_snapshot_data = wsnap_resp.json()
+        except:
+            pass
+
+        if not week_snapshot_data:
+            week_snapshot_data = {
+                "all_time_ts": user_data.get("all_time_ts", 0),
+                "all_time_clan_loots": user_data.get("all_time_clan_loots", 0),
+                "all_time_loots": user_data.get("all_time_loots", 0)
+            }
+            try:
+                requests.put(week_snapshot_url, json=week_snapshot_data, timeout=10)
+            except:
+                pass
+
+        weekly_personal_loot_calc = user_data.get("all_time_loots", 0) - week_snapshot_data.get("all_time_loots", user_data.get("all_time_loots", 0))
+        weekly_clan_loot_calc = user_data.get("all_time_clan_loots", 0) - week_snapshot_data.get("all_time_clan_loots", user_data.get("all_time_clan_loots", 0))
+        
+        user_data["weekly_personal_loot_calc"] = weekly_personal_loot_calc
+        user_data["weekly_clan_loot_calc"] = weekly_clan_loot_calc
 
         url = FIREBASE_DB_URL.rstrip('/') + f"/profiles/{safe_username_key}.json"
         try:

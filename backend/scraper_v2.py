@@ -175,11 +175,10 @@ def scrape_and_push():
 
         adjusted_time = datetime.now(tz=BRAZIL_TZ) - timedelta(hours=9)
         today_str = adjusted_time.strftime("%Y-%m-%d")
-        yesterday_str = (adjusted_time - timedelta(days=1)).strftime("%Y-%m-%d")
         safe_username_key = requests.utils.requote_uri(m["username"])
 
+current_hour = datetime.now(tz=BRAZIL_TZ).strftime("%H")
         snapshot_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots/{safe_username_key}/{today_str}.json"
-        yesterday_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots/{safe_username_key}/{yesterday_str}.json"
         
         snapshot_data = None
         try:
@@ -189,24 +188,37 @@ def scrape_and_push():
         except:
             pass
 
-        if not snapshot_data:
-            try:
-                yd_resp = requests.get(yesterday_url, timeout=10)
-                if yd_resp.status_code == 200 and yd_resp.json():
-                    snapshot_data = yd_resp.json()
-            except:
-                pass
-            
-            if not snapshot_data:
-                snapshot_data = {
-                    "all_time_ts": user_data.get("all_time_ts", 0),
-                    "all_time_clan_loots": user_data.get("all_time_clan_loots", 0),
-                    "all_time_loots": user_data.get("all_time_loots", 0)
-                }
+        # Adiciona histórico das 09h como ponto inicial (diário).
+        # Se os dados estiverem bagunçados/incompletos (sem loot_pessoal) eles se auto-corrigem aqui
+        if snapshot_data and "all_time_loots" not in snapshot_data:
+            snapshot_data["all_time_loots"] = user_data.get("all_time_loots", 0)
             try:
                 requests.put(snapshot_url, json=snapshot_data, timeout=10)
             except:
                 pass
+
+        if not snapshot_data:
+            # Se não houver snapshot de hoje é pq acabou de virar 09:00. O snapshot_data vai ser a foto EXATA do momento
+            snapshot_data = {
+                "all_time_ts": user_data.get("all_time_ts", 0),
+                "all_time_clan_loots": user_data.get("all_time_clan_loots", 0),
+                "all_time_loots": user_data.get("all_time_loots", 0)
+            }
+            try:
+                requests.put(snapshot_url, json=snapshot_data, timeout=10)
+            except:
+                pass
+                
+        # Salva o snap da HORA dentro do dia (histórico do usuário para traçar crescimento no detalhe se quiser)
+        hour_url = FIREBASE_DB_URL.rstrip('/') + f"/snapshots_history/{safe_username_key}/{today_str}/{current_hour}.json"
+        try:
+            requests.put(hour_url, json={
+                "all_time_ts": user_data.get("all_time_ts", 0),
+                "all_time_clan_loots": user_data.get("all_time_clan_loots", 0),
+                "all_time_loots": user_data.get("all_time_loots", 0)
+            }, timeout=10)
+        except:
+            pass
 
         daily_ts = user_data.get("all_time_ts", 0) - snapshot_data.get("all_time_ts", user_data.get("all_time_ts", 0))
         daily_loot = user_data.get("all_time_clan_loots", 0) - snapshot_data.get("all_time_clan_loots", user_data.get("all_time_clan_loots", 0))

@@ -52,8 +52,8 @@ export function useAllClanStats() {
           username: scUser.username,
           donations: donationsMap[scUser.username] || 0,
           baseLoot: 0,
-          scraperLoot: scUser.currentAll,
-          totalLoot: scUser.currentAll
+          scraperLoot: scUser.clanAllTime,
+          totalLoot: scUser.clanAllTime
         }));
 
         // Sort by totalLoot descending

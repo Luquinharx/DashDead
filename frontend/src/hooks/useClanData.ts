@@ -63,6 +63,7 @@ function calculateDailyLoot(username: string, weeklyLoots: number): number {
 export interface MemberData {
   username: string;
   currentAll: number;
+  clanAllTime: number;
   dailyLoot: number;
   weeklyToDate: number;
   weeklyValues: number[];
@@ -107,12 +108,14 @@ export function useClanData() {
         
         // Use user's personal loots, not clan loots
         const currentAll = val.all_time_loots || 0; // User's all time loots
+        const clanAllTime = val.all_time_clan_loots || 0; // Clan all time loots
         const weeklyLoot = val.weekly_loots || 0; // User's weekly loots
         const dailyLoot = calculateDailyLoot(u, weeklyLoot); // Calculate daily based on 09:00 SP reset
-        
+
         out.push({
           username: u,
           currentAll: currentAll,
+          clanAllTime: clanAllTime,
           dailyLoot: dailyLoot, // Now calculated correctly with 09:00 reset
           weeklyToDate: weeklyLoot,
           weeklyValues: [weeklyLoot],

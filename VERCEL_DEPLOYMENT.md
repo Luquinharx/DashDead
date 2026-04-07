@@ -21,12 +21,12 @@ Follow the prompts and connect your GitHub repository.
 
 1. Go to https://vercel.com/new
 2. Select "Other - Existing Git Repository"
-3. Import the DashDead repository
-4. Project settings:
+3. Import the `DashDead` repository
+4. **CRITICAL STEP**: Click on **"Edit"** next to **Root Directory** and select `frontend`.
+5. Project settings will auto-detect Vite:
    - **Framework Preset**: Vite
-   - **Build Command**: `cd frontend && npm run build`
-   - **Output Directory**: `frontend/dist`
-   - **Install Command**: `npm install` (or uses package-lock.json)
+   - **Build Command**: `npm run build` (default)
+   - **Output Directory**: `dist` (default)
 
 ## Environment Variables
 

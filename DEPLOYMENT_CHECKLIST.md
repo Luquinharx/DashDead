@@ -17,13 +17,13 @@
 - [x] `package.json` has correct scripts ✓
 - [x] `vite.config.ts` configured correctly ✓
 - [x] `tsconfig.json` properly set up ✓
-- [x] `vercel.json` configured with rewrites ✓
+- [x] `frontend/vercel.json` configured with rewrites ✓
 
 ## Files Included
 - [x] Frontend source code (`frontend/src/`) ✓
 - [x] Build configuration (`tsconfig.*.json`, vite.config.ts) ✓
 - [x] Package management (`package.json`, `package-lock.json`) ✓
-- [x] Deployment config (`vercel.json`) ✓
+- [x] Deployment config (`frontend/vercel.json`) ✓
 - [x] Environment template (`.env.example`) ✓
 - [x] Scraper source (`scraper_v2.py`) ✓
 - [x] Requirements (`requirements.txt`) ✓

@@ -25,12 +25,10 @@ export default function Navbar() {
 
   // Links visible only to logged users
   const protectedLinks = [
+    { to: '/roleta', label: 'Casino', icon: Gift },
+    { to: '/power-roleta', label: 'Power Casino', icon: Gift },
     { to: '/perfil', label: 'Profile', icon: User },
   ];
-
-  if (isSuperUser || profile?.cargo === 'High Warden') {
-    protectedLinks.unshift({ to: '/power-roleta', label: 'Girar Power', icon: Gift }, { to: '/roleta', label: 'Adicionar item', icon: Gift });
-  }
   
   const links = [
     ...publicLinks,

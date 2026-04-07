@@ -11,7 +11,7 @@ import { Edit3, Trash2, Save, X, Search, UserPlus, Gift, Check, ShieldAlert, Loa
 import { cn } from '../../lib/utils';
 import CasinoSettings from './CasinoSettings';
 
-const CARGOS = ['Member', 'Officer', 'Sub-Leader', 'Leader'];
+const CARGOS = ['Membro', 'Oficial', 'Sub-Líder', 'Líder'];
 
 
 // Auth secundário para criar usuários sem deslogar o admin
@@ -280,7 +280,7 @@ export default function GerenciarUsuarios() {
     return (
       <div className="min-h-screen bg-black font-serif">
         <div className="flex items-center justify-center h-[80vh] text-red-600 text-lg uppercase tracking-widest animate-pulse border border-red-900/20 m-12 bg-red-950/10">
-          Access Denied • Clearance Level: Leader
+          Acesso Negado • Nível de Acesso: Líder
         </div>
       </div>
     );

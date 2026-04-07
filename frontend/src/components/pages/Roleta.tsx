@@ -7,17 +7,9 @@ import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, addDoc, Timestamp, updateDoc, doc, increment } from 'firebase/firestore';
 import { Gift } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { Navigate } from 'react-router-dom';
 
 export default function Roleta() {
   const { profile, refreshProfile } = useAuth();
-  const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
-  const isAllowed = isSuperUser || profile?.cargo === 'High Warden';
-
-  if (profile && !isAllowed) {
-    return <Navigate to="/" replace />;
-  }
-
   const { stats } = useClanMemberData(profile?.nickJogo || undefined);
   const { config } = useCasinoConfig();
   const [spinning, setSpinning] = useState(false);

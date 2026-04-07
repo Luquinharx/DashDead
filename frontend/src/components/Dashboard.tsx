@@ -47,17 +47,25 @@ export default function Dashboard() {
     }
   };
 
+  const dedupedData = useMemo(() => {
+    const uniqueMap = new Map<string, MemberData>();
+    data.forEach(d => {
+      const existing = uniqueMap.get(d.username);
+      // Keep the one with the highest dailyLoot (or currentAll as fallback)
+      if (!existing || d.dailyLoot > existing.dailyLoot || (d.dailyLoot === existing.dailyLoot && (d.currentAll || 0) > (existing.currentAll || 0))) {
+        uniqueMap.set(d.username, d);
+      }
+    });
+    return Array.from(uniqueMap.values());
+  }, [data]);
+
   const filteredAndSortedData = useMemo(() => {
-    let result = data
-      .filter(r => r.isActive)
-      .filter(r => r.username.toLowerCase().includes(search.toLowerCase()));
+    let result = dedupedData.filter(r => r.username.toLowerCase().includes(search.toLowerCase()));
 
     if (filterMode === 'active') {
       result = result.filter(r => r.isActive);
     } else if (filterMode === 'inactive') {
       result = result.filter(r => !r.isActive);
-    } else if (filterMode === 'all') {
-      result = data.filter(r => r.username.toLowerCase().includes(search.toLowerCase()));
     }
 
     result.sort((a, b) => {
@@ -94,26 +102,20 @@ export default function Dashboard() {
     });
 
     return result;
-  }, [data, search, sortKey, sortDesc, filterMode, profiles]);
+  }, [dedupedData, search, sortKey, sortDesc, filterMode, profiles]);
 
-  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);    
+  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
   const topEarnerData = useMemo(() => {
-    // Deduplicate profiles by username, keeping the one with max weekly value
-    const uniqueData = Array.from(
-      data.reduce((map, m) => {
-        const weekly = (m.weeklyValues && m.weeklyValues.length) ? m.weeklyValues[m.weeklyValues.length - 1] : 0;
-        const current = map.get(m.username);
-        if (!current || weekly > current.weekly) {
-          map.set(m.username, { ...m, weekly });
-        }
-        return map;
-      }, new Map<string, MemberData & { weekly: number }>())
-    ).map(([_, m]) => m);
+    // Already deduplicated, just parse weekly values
+    const uniqueData = dedupedData.map(m => {
+      const weekly = (m.weeklyValues && m.weeklyValues.length) ? m.weeklyValues[m.weeklyValues.length - 1] : 0;
+      return { ...m, weekly };
+    });
 
     return uniqueData
       .sort((a, b) => b.weekly - a.weekly)
@@ -123,10 +125,10 @@ export default function Dashboard() {
         username: m.username,
         weekly: m.weekly
       }));
-  }, [data]);
+  }, [dedupedData]);
 
-  const totalDailyLoot = data.reduce((acc, curr) => acc + curr.dailyLoot, 0);   
-  const topEarner = data.length > 0 ? [...data].sort((a, b) => b.dailyLoot - a.dailyLoot)[0] : null;
+  const totalDailyLoot = dedupedData.reduce((acc, curr) => acc + curr.dailyLoot, 0);
+  const topEarner = dedupedData.length > 0 ? [...dedupedData].sort((a, b) => b.dailyLoot - a.dailyLoot)[0] : null;
 
   if (loading) {
     return (

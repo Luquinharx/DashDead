@@ -50,8 +50,19 @@ export default function EstatisticasTS() {
     }
   };
 
+  const dedupedProfiles = useMemo(() => {
+    const uniqueMap = new Map<string, MemberProfile>();
+    profiles.forEach(p => {
+      const existing = uniqueMap.get(p.username);
+      if (!existing || p.weekly_ts > existing.weekly_ts || (p.weekly_ts === existing.weekly_ts && p.all_time_ts > existing.all_time_ts)) {
+        uniqueMap.set(p.username, p);
+      }
+    });
+    return Array.from(uniqueMap.values());
+  }, [profiles]);
+
   const filteredAndSortedData = useMemo(() => {
-    let result = profiles.filter(p => p.username.toLowerCase().includes(search.toLowerCase()));
+    let result = dedupedProfiles.filter(p => p.username.toLowerCase().includes(search.toLowerCase()));
 
     if (filterMode === 'active') {
       result = result.filter(p => p.weekly_ts > 0);
@@ -60,33 +71,29 @@ export default function EstatisticasTS() {
     }
 
     result.sort((a, b) => {
-      const av = Number(a[sortKey as keyof MemberProfile] ?? 0);
-      const bv = Number(b[sortKey as keyof MemberProfile] ?? 0);
-      return sortDesc ? (bv - av) : (av - bv);
+      let av: number | string = 0, bv: number | string = 0;
+      if (sortKey === 'username') {
+        av = a.username.toLowerCase();
+        bv = b.username.toLowerCase();
+        return sortDesc ? (av < bv ? 1 : av > bv ? -1 : 0) : (av > bv ? 1 : av < bv ? -1 : 0);
+      }
+      av = Number(a[sortKey as keyof MemberProfile] ?? 0);
+      bv = Number(b[sortKey as keyof MemberProfile] ?? 0);
+      return sortDesc ? (Number(bv) - Number(av)) : (Number(av) - Number(bv));
     });
 
     return result;
-  }, [profiles, search, sortKey, sortDesc, filterMode]);
+  }, [dedupedProfiles, search, sortKey, sortDesc, filterMode]);
 
-  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);    
+  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);
   const paginatedProfiles = filteredAndSortedData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
   const topEarnerData = useMemo(() => {
-    // Deduplicate profiles by username, keeping the one with max weekly TS
-    const uniqueData = Array.from(
-      profiles.reduce((map, m) => {
-        const current = map.get(m.username);
-        if (!current || m.weekly_ts > current.weekly_ts) {
-          map.set(m.username, m);
-        }
-        return map;
-      }, new Map<string, any>()).values()
-    );
-
-    return uniqueData
+    // Already deduplicated
+    return [...dedupedProfiles]
       .sort((a, b) => b.weekly_ts - a.weekly_ts)
       .slice(0, 3)
       .map((m, idx) => ({
@@ -94,16 +101,16 @@ export default function EstatisticasTS() {
         username: m.username,
         weekly_ts: m.weekly_ts
       }));
-  }, [profiles]);
+  }, [dedupedProfiles]);
 
-  const totalWeeklyTS = profiles.reduce((acc, curr) => acc + curr.weekly_ts, 0);   
-  const topEarner = profiles.length > 0 ? [...profiles].sort((a, b) => b.weekly_ts - a.weekly_ts)[0] : null;
+  const totalWeeklyTS = dedupedProfiles.reduce((acc, curr) => acc + curr.weekly_ts, 0);
+  const topEarner = dedupedProfiles.length > 0 ? [...dedupedProfiles].sort((a, b) => b.weekly_ts - a.weekly_ts)[0] : null;
 
-  const latestCollectedAt = profiles.length > 0 ? profiles[0].collected_at : '';
+  const latestCollectedAt = dedupedProfiles.length > 0 ? dedupedProfiles[0].collected_at : '';
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">  
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
       </div>
     );

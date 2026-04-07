@@ -30,12 +30,12 @@ export default function GerenciarUsuarios() {
 
   const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
   const isOfficerOnly = profile?.cargo === 'Officer';
-  const isAdmin = profile?.cargo === 'Leader' || profile?.cargo === 'Sub-Leader' || isSuperUser || isOfficerOnly;
+    const isHighLeader = profile?.cargo === 'High Warden';
+    const isLeader = profile?.cargo === 'Leader' || isSuperUser || isOfficerOnly;
+    const isAdmin = isLeader || isHighLeader;
 
-  // Tabs
-  const [activeTab, setActiveTab] = useState<'members' | 'spins' | 'casino'>(isOfficerOnly ? 'spins' : 'members');
-
-  // Members State
+    // Tabs
+    const [activeTab, setActiveTab] = useState<'members' | 'spins' | 'casino'>(isHighLeader ? 'spins' : 'members');
   const [usuarios, setUsuarios] = useState<(UserProfile & { docId: string })[]>([]);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -318,7 +318,7 @@ export default function GerenciarUsuarios() {
           </div>
 
 <div className="flex gap-2 bg-stone-900/50 p-1 rounded-sm border border-white/5 overflow-x-auto">
-              {!isOfficerOnly && (
+              {isLeader && (
                 <button
                   onClick={() => setActiveTab('members')}
                   className={cn(
@@ -338,19 +338,17 @@ export default function GerenciarUsuarios() {
               >
                   Slot Spins
               </button>
-              {!isOfficerOnly && (
-                <button
-                  onClick={() => setActiveTab('casino')}
-                  className={cn(
-                      "px-6 py-2 rounded-sm text-sm uppercase tracking-widest font-bold transition-all whitespace-nowrap",
-                      activeTab === 'casino' ? "bg-red-900/30 text-red-500 border border-red-900/50 shadow-[0_0_10px_rgba(220,38,38,0.2)]" : "text-stone-500 hover:text-stone-300 hover:bg-white/5"
-                  )}
-                >
-                    <span className="flex items-center gap-2">
-                      <Settings className="w-4 h-4" /> CASINO CONFIG
-                    </span>
-                </button>
-              )}
+              <button
+                onClick={() => setActiveTab('casino')}
+                className={cn(
+                    "px-6 py-2 rounded-sm text-sm uppercase tracking-widest font-bold transition-all whitespace-nowrap",
+                    activeTab === 'casino' ? "bg-red-900/30 text-red-500 border border-red-900/50 shadow-[0_0_10px_rgba(220,38,38,0.2)]" : "text-stone-500 hover:text-stone-300 hover:bg-white/5"
+                )}
+              >
+                  <span className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" /> CASINO CONFIG
+                  </span>
+              </button>
           </div>
         </header>
 

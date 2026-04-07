@@ -28,10 +28,11 @@ export interface CasinoConfig {
 
 export const defaultCasinoConfig: CasinoConfig = {
   prizes: [
-    { id: 1, name: 'Pequena (100k)', chance: 50, value: '100k', color: 'text-amber-500', icon: '💰' },
-    { id: 2, name: 'Média (500k)', chance: 30, value: '500k', color: 'text-emerald-500', icon: '💵' },
-    { id: 3, name: 'Grande (2M)', chance: 15, value: '2M', color: 'text-red-500', icon: '💎' },
-    { id: 4, name: 'Jackpot (10M)', chance: 5, value: '10M', color: 'text-purple-500', icon: '👑' },
+    { id: 1, name: 'Normal (100k)', chance: 49, value: '100k', color: 'text-amber-500', icon: '💰' },
+    { id: 2, name: 'Rara (250k)', chance: 25, value: '250k', color: 'text-emerald-500', icon: '💵' },
+    { id: 3, name: 'Épica (500k)', chance: 15, value: '500k', color: 'text-blue-500', icon: '💎' },
+    { id: 4, name: 'Lendária (1M)', chance: 10, value: '1M', color: 'text-purple-500', icon: '👑' },
+    { id: 5, name: 'Mítica (2.5M)', chance: 1, value: '2.5M', color: 'text-red-500', icon: '🔥' },
   ],
   lootRules: [
     { amount: 1000, spins: 1 },
@@ -53,8 +54,15 @@ export function useCasinoConfig() {
     const unsub = onSnapshot(doc(db, 'config', 'casino'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as CasinoConfig;
+        
+        let loadedPrizes = data.prizes || defaultCasinoConfig.prizes;
+        if (loadedPrizes.length > 0 && loadedPrizes[0].chance === 50 && loadedPrizes[0].name.includes('100k')) {
+            loadedPrizes = defaultCasinoConfig.prizes; // Auto-update to new 49% default
+            setDoc(doc(db, 'config', 'casino'), { ...data, prizes: loadedPrizes }, { merge: true });
+        }
+
         setConfig({
-          prizes: data.prizes || defaultCasinoConfig.prizes,
+          prizes: loadedPrizes,
           lootRules: data.lootRules || defaultCasinoConfig.lootRules,
           donationRule: data.donationRule || defaultCasinoConfig.donationRule,
         });

@@ -622,7 +622,7 @@ export default function GerenciarUsuarios() {
                                 <thead className="text-[10px] text-stone-500 uppercase bg-black border-b border-white/10 tracking-wider">
                                     <tr>
                                         <th className="px-6 py-4 font-normal text-left">Date</th>
-                                        <th className="px-6 py-4 font-normal text-left">Operative Nick</th>
+                                        <th className="px-6 py-4 font-normal text-left">Username</th>
                                         <th className="px-6 py-4 font-normal text-left">Prize</th>
                                         <th className="px-6 py-4 font-normal text-center">Status</th>
                                         <th className="px-6 py-4 font-normal text-center">Management</th>
@@ -632,7 +632,7 @@ export default function GerenciarUsuarios() {
                                     {spins
                                     .filter(spin => {
                                         const userDetails = usuarios.find(u => u.userId === spin.userId || u.docId === spin.userId);
-                                        const userName = userDetails?.nick || spin.userId || 'Unknown';
+                                        const userName = userDetails?.nickJogo || userDetails?.nick || spin.userId || 'Unknown';
                                         return userName.toLowerCase().includes(search.toLowerCase());
                                     })
                                     .map(spin => {
@@ -642,7 +642,7 @@ export default function GerenciarUsuarios() {
                                         <tr key={spin.id} className="hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-3 text-stone-500 text-xs">{spin.formattedDate}</td>
                                             <td className="px-6 py-3 text-white font-serif tracking-wide">
-                                                {userDetails?.nick || <span className="text-stone-600 text-[10px] font-mono">{spin.userId}</span>} 
+                                                {userDetails?.nickJogo || userDetails?.nick || <span className="text-stone-600 text-[10px] font-mono">{spin.userId}</span>} 
                                             </td>
                                             <td className="px-6 py-3 text-red-400 font-bold">{spin.premio}</td>
                                             <td className="px-6 py-3 text-center">

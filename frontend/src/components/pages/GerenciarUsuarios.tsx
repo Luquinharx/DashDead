@@ -80,11 +80,25 @@ export default function GerenciarUsuarios() {
         const q = query(collection(db, 'roletas'), orderBy('data', 'desc'), limit(100)); // Limit to last 100 for performance
         const snap = await getDocs(q);
         const list: any[] = [];
+        
+        let currentUsers = usuarios;
+        if (currentUsers.length === 0) {
+            const uSnap = await getDocs(collection(db, 'usuarios'));
+            const uList: any[] = [];
+            uSnap.forEach(u => uList.push({ ...u.data(), docId: u.id }));
+            currentUsers = uList;
+            setUsuarios(uList);
+        }
+
         snap.forEach(d => {
             const data = d.data();
+            const uDetails = currentUsers.find(u => u.docId === data.userId || u.userId === data.userId);
+            const resolvedName = uDetails ? (uDetails.nickJogo || uDetails.nick || data.userId) : data.userId;
+            
             list.push({
                 id: d.id,
                 ...data,
+                resolvedName,
                 formattedDate: data.data?.toDate?.() ? data.data.toDate().toLocaleDateString('pt-BR') + ' ' + data.data.toDate().toLocaleTimeString('pt-BR') : 'Invalid Date'
             });
         });
@@ -631,18 +645,15 @@ export default function GerenciarUsuarios() {
                                 <tbody className="divide-y divide-white/5">
                                     {spins
                                     .filter(spin => {
-                                        const userDetails = usuarios.find(u => u.userId === spin.userId || u.docId === spin.userId);
-                                        const userName = userDetails?.nickJogo || userDetails?.nick || spin.userId || 'Unknown';
+                                        const userName = spin.resolvedName || spin.userId || 'Unknown';
                                         return userName.toLowerCase().includes(search.toLowerCase());
                                     })
                                     .map(spin => {
-                                        const userDetails = usuarios.find(u => u.userId === spin.userId || u.docId === spin.userId);
-                                        
                                         return (
                                         <tr key={spin.id} className="hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-3 text-stone-500 text-xs">{spin.formattedDate}</td>
                                             <td className="px-6 py-3 text-white font-serif tracking-wide">
-                                                {userDetails?.nickJogo || userDetails?.nick || <span className="text-stone-600 text-[10px] font-mono">{spin.userId}</span>} 
+                                                {spin.resolvedName || <span className="text-stone-600 text-[10px] font-mono">{spin.userId}</span>}
                                             </td>
                                             <td className="px-6 py-3 text-red-400 font-bold">{spin.premio}</td>
                                             <td className="px-6 py-3 text-center">

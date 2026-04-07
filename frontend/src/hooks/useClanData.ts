@@ -52,8 +52,8 @@ export function useClanData() {
         // Use user's personal loots, not clan loots
         const currentAll = val.all_time_loots || 0; // User's all time loots
         const clanAllTime = val.all_time_clan_loots || 0; // Clan all time loots
-        const weeklyLoot = val.weekly_loots || 0; // User's weekly loots
-        const dailyLoot = val.daily_loot_calc || 0; // Calculated by scraper
+        const weeklyLoot = val.weekly_personal_loot_calc ?? val.weekly_loots || 0; // Reset semanal às 09:00 SP
+        const dailyLoot = val.daily_loot_calc || 0; // Reset diário às 09:00 SP
 
         out.push({
           username: u,

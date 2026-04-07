@@ -65,7 +65,7 @@ export default function DashboardUser() {
 
   // Calculo do Colateral
   const totalDonations = firestoreData.totalDonations || 0;
-  const collateralMonthsVal = monthsInClan * 7000;
+  const collateralMonthsVal = monthsInClan * 7000000;
   const collateralLootVal = totalLoot * 500;
   const collateralDonationsVal = totalDonations * 2;
   const collateralTotal = collateralMonthsVal + collateralLootVal + collateralDonationsVal;

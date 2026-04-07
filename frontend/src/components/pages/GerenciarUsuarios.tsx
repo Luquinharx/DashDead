@@ -10,6 +10,7 @@ import { RankBadge } from '../RankBadge';
 import { Edit3, Trash2, Save, X, Search, UserPlus, Gift, Check, ShieldAlert, Loader2, Settings } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import CasinoSettings from './CasinoSettings';
+import PowerRouletteSettings from './PowerRouletteSettings';
 
 const CARGOS = ['Leader', 'High Warden', 'Blade Master', 'Guardian', 'Gate Keeper', 'Street Cleaner'];
 
@@ -701,7 +702,10 @@ export default function GerenciarUsuarios() {
 
         {/* CASINO CONFIG VIEW */}
         {activeTab === 'casino' && (
+          <div className="flex flex-col gap-12">
              <CasinoSettings />
+             <PowerRouletteSettings />
+          </div>
         )}
 
       </div>

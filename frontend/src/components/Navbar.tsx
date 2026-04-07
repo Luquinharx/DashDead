@@ -29,7 +29,7 @@ export default function Navbar() {
   ];
 
   if (isSuperUser || profile?.cargo === 'High Warden') {
-    protectedLinks.unshift({ to: '/roleta', label: 'Adicionar item', icon: Gift });
+    protectedLinks.unshift({ to: '/power-roleta', label: 'Girar Power', icon: Gift }, { to: '/roleta', label: 'Adicionar item', icon: Gift });
   }
   
   const links = [

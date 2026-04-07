@@ -8,6 +8,7 @@ import DashboardUser from './components/pages/DashboardUser';
 import Estatisticas from './components/pages/Estatisticas';
 import EstatisticasTS from './components/pages/EstatisticasTS';
 import Roleta from './components/pages/Roleta';
+import PowerRoleta from './components/pages/PowerRoleta';
 import Perfil from './components/pages/Perfil';
 import GerenciarUsuarios from './components/pages/GerenciarUsuarios';
 import Home from './components/pages/Home';
@@ -35,6 +36,7 @@ function App() {
           <Route path="/login" element={<Login />} />
 
           {/* Protected Routes */}
+          <Route path="/power-roleta" element={<ProtectedRoute><PublicLayout><PowerRoleta /></PublicLayout></ProtectedRoute>} />
           <Route path="/roleta" element={<ProtectedRoute><PublicLayout><Roleta /></PublicLayout></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><PublicLayout><Perfil /></PublicLayout></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><PublicLayout><GerenciarUsuarios /></PublicLayout></ProtectedRoute>} />

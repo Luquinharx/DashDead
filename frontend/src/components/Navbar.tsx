@@ -12,7 +12,7 @@ export default function Navbar() {
 
   // Check if admin
   const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
-  const isAdmin = profile?.cargo === 'Líder' || profile?.cargo === 'Sub-Líder' || isSuperUser;
+  const isAdmin = profile?.cargo === 'Leader' || profile?.cargo === 'Sub-Leader' || isSuperUser;
 
   // Base links visible to everyone
   const publicLinks = [

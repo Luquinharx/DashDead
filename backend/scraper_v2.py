@@ -222,4 +222,13 @@ def scrape_and_push():
     logging.info("Scrape de perfis concluido com sucesso.")
 
 if __name__ == "__main__":
+    logging.info("Executando a primeira coleta...")
     scrape_and_push()
+    
+    logging.info("Iniciando o agendador: coleta a cada 5 minutos. Pressione Ctrl+C para sair.")
+    scheduler = BlockingScheduler()
+    scheduler.add_job(scrape_and_push, 'interval', minutes=5)
+    try:
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Agendador interrompido.")

@@ -9,7 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useScrapedUsernames } from '../../hooks/useClanMemberData';
 import Navbar from '../Navbar';
 
-const CARGOS = ['Membro', 'Oficial', 'Sub-Líder', 'Líder'];
+const CARGOS = ['Member', 'Officer', 'Sub-Leader', 'Leader'];
 
 // Auth secundário para criar usuários sem deslogar o admin
 const secondaryApp = initializeApp({
@@ -28,19 +28,19 @@ export default function Cadastro() {
   const [nickJogo, setNickJogo] = useState('');
   const [discord, setDiscord] = useState('');
   const [dataEntrada, setDataEntrada] = useState('');
-  const [cargo, setCargo] = useState('Membro');
+  const [cargo, setCargo] = useState('Member');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isAdmin = profile?.cargo === 'Líder' || profile?.cargo === 'Sub-Líder';
+  const isAdmin = profile?.cargo === 'Leader' || profile?.cargo === 'Sub-Leader';
 
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-slate-950">
         <Navbar />
         <div className="flex items-center justify-center h-[80vh] text-red-400 text-lg">
-          Acesso restrito a Líderes e Sub-Líderes.
+          Acesso restrito a Leaderes e Sub-Leaderes.
         </div>
       </div>
     );
@@ -72,7 +72,7 @@ export default function Cadastro() {
       });
 
       setSuccess(`Usuário "${nick}" cadastrado com sucesso!`);
-      setEmail(''); setSenha(''); setNick(''); setNickJogo(''); setDiscord(''); setDataEntrada(''); setCargo('Membro');
+      setEmail(''); setSenha(''); setNick(''); setNickJogo(''); setDiscord(''); setDataEntrada(''); setCargo('Member');
     } catch (err: any) {
       const code = err?.code || '';
       if (code === 'auth/email-already-in-use') {

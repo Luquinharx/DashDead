@@ -11,7 +11,7 @@ import { Edit3, Trash2, Save, X, Search, UserPlus, Gift, Check, ShieldAlert, Loa
 import { cn } from '../../lib/utils';
 import CasinoSettings from './CasinoSettings';
 
-const CARGOS = ['Membro', 'Oficial', 'Sub-Líder', 'Líder'];
+const CARGOS = ['Member', 'Officer', 'Sub-Leader', 'Leader'];
 
 
 // Auth secundário para criar usuários sem deslogar o admin
@@ -54,7 +54,7 @@ export default function GerenciarUsuarios() {
   const [cadNickJogo, setCadNickJogo] = useState('');
   const [cadDiscord, setCadDiscord] = useState('');
   const [cadDataEntrada, setCadDataEntrada] = useState('');
-  const [cadCargo, setCadCargo] = useState('Membro');
+  const [cadCargo, setCadCargo] = useState('Member');
   const [cadError, setCadError] = useState('');
   const [cadSuccess, setCadSuccess] = useState('');
   const [cadLoading, setCadLoading] = useState(false);
@@ -184,7 +184,7 @@ export default function GerenciarUsuarios() {
       });
 
       setCadSuccess(`User "${cadNick}" successfully registered!`);
-      setCadEmail(''); setCadSenha(''); setCadNick(''); setCadNickJogo(''); setCadDiscord(''); setCadDataEntrada(''); setCadCargo('Membro');
+      setCadEmail(''); setCadSenha(''); setCadNick(''); setCadNickJogo(''); setCadDiscord(''); setCadDataEntrada(''); setCadCargo('Member');
       await loadAll();
     } catch (err: any) {
       const code = err?.code || '';
@@ -253,18 +253,18 @@ export default function GerenciarUsuarios() {
     currentPage * itemsPerPage
   );
 
-  // só líderes podem gerenciar
+  // só leaders podem gerenciar
   const isSuperUser = profile?.email === 'bone.ak103@gmail.com';
-  const isAdmin = profile?.cargo === 'Líder' || profile?.cargo === 'Sub-Líder' || isSuperUser;
+  const isAdmin = profile?.cargo === 'Leader' || profile?.cargo === 'Sub-Leader' || isSuperUser;
 
   // Auto-promote superuser if needed
   useEffect(() => {
       // Check if user is the specific superuser AND not already an admin in profile
-      if (isSuperUser && profile?.cargo !== 'Líder' && profile?.userId) {
+      if (isSuperUser && profile?.cargo !== 'Leader' && profile?.userId) {
           const promoteUser = async () => {
               try {
                   // Force database update
-                  await updateDoc(doc(db, 'usuarios', profile.userId), { cargo: 'Líder' });
+                  await updateDoc(doc(db, 'usuarios', profile.userId), { cargo: 'Leader' });
                   // Refresh context to update UI immediately
                   await refreshProfile();
               } catch (err) {
@@ -280,7 +280,7 @@ export default function GerenciarUsuarios() {
     return (
       <div className="min-h-screen bg-black font-serif">
         <div className="flex items-center justify-center h-[80vh] text-red-600 text-lg uppercase tracking-widest animate-pulse border border-red-900/20 m-12 bg-red-950/10">
-          Acesso Negado • Nível de Acesso: Líder
+          Acesso Negado • Nível de Acesso: Leader
         </div>
       </div>
     );
@@ -456,7 +456,7 @@ export default function GerenciarUsuarios() {
                 <table className="w-full text-sm text-left font-mono">
                     <thead className="text-[10px] text-stone-500 uppercase bg-black border-b border-white/10 tracking-wider">
                     <tr>
-                        <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('nick')}><div className="flex items-center">Membro {renderSortIcon('nick')}</div></th>
+                        <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('nick')}><div className="flex items-center">Member {renderSortIcon('nick')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('nickJogo')}><div className="flex items-center">Status TS {renderSortIcon('nickJogo')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('email')}><div className="flex items-center">Email {renderSortIcon('email')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('discord')}><div className="flex items-center">Cargos Discord {renderSortIcon('discord')}</div></th>
@@ -524,8 +524,8 @@ export default function GerenciarUsuarios() {
                             <td className="px-6 py-3">
                                 <span className={cn(
                                 "inline-flex px-2 py-0.5 rounded-sm text-[10px] uppercase font-bold tracking-widest border",
-                                u.cargo === 'Líder' ? "bg-red-950/20 text-red-500 border-red-900/40" :
-                                u.cargo === 'Sub-Líder' ? "bg-stone-800 text-stone-300 border-stone-700" :
+                                u.cargo === 'Leader' ? "bg-red-950/20 text-red-500 border-red-900/40" :
+                                u.cargo === 'Sub-Leader' ? "bg-stone-800 text-stone-300 border-stone-700" :
                                 "bg-stone-900/50 text-stone-500 border-stone-800"
                                 )}>
                                 {u.cargo}

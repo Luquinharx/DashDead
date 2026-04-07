@@ -23,16 +23,16 @@ export default function CasinoSettings() {
       // Validate totals
       const totalChance = localConfig.prizes.reduce((acc, p) => acc + Number(p.chance), 0);
       if (Math.abs(totalChance - 100) > 0.1) {
-        setMessage(`Erro: As chances somam ${totalChance}%. O total deve ser exatamente 100%.`);
+        setMessage(`Error: Chances sum to ${totalChance}%. The total must be exactly 100%.`);
         setSaving(false);
         return;
       }
       
       await updateConfig(localConfig);
-      setMessage('Configurações salvas com sucesso!');
+      setMessage('Settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (e) {
-      setMessage('Erro ao salvar as configurações.');
+      setMessage('Error saving settings.');
     } finally {
       setSaving(false);
     }
@@ -48,19 +48,19 @@ export default function CasinoSettings() {
       <div className="bg-stone-950/50 border border-white/10 rounded-sm p-6">
         <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
           <div>
-            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Probabilidades de Recompensa</h2>
-            <p className="text-xs text-stone-500 font-mono mt-1">Configure os prêmios, chances e cores da roleta. O total deve ser 100%.</p>
+            <h2 className="text-xl font-bold text-white uppercase tracking-widest">Reward Probabilities</h2>
+            <p className="text-xs text-stone-500 font-mono mt-1">Configure the prizes, chances, and colors of the roulette. The total must be 100%.</p>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="grid grid-cols-12 gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-widest px-2">
-            <div className="col-span-3">Nome do Prêmio</div>
-            <div className="col-span-2">Valor (ex: 500k)</div>
+            <div className="col-span-3">Prize Name</div>
+            <div className="col-span-2">Value (ex: 500k)</div>
             <div className="col-span-2">Chance (%)</div>
-            <div className="col-span-2">Ícone</div>
-            <div className="col-span-2">Cor (Tailwind)</div>
-            <div className="col-span-1 text-right">Ação</div>
+            <div className="col-span-2">Icon</div>
+            <div className="col-span-2">Color (Tailwind)</div>
+            <div className="col-span-1 text-right">Action</div>
           </div>
           
           {localConfig.prizes.map((prize, index) => (
@@ -144,13 +144,13 @@ export default function CasinoSettings() {
               const newId = localConfig.prizes.length > 0 ? Math.max(...localConfig.prizes.map(p => p.id)) + 1 : 1;
               setLocalConfig({
                 ...localConfig,
-                prizes: [...localConfig.prizes, { id: newId, name: 'Novo prêmio', chance: 0, value: '0', color: 'text-white', icon: '❓' }]
+                prizes: [...localConfig.prizes, { id: newId, name: 'New prize', chance: 0, value: '0', color: 'text-white', icon: '❓' }]
               });
             }}
             className="flex items-center gap-2 text-xs text-red-500 uppercase tracking-widest font-bold hover:text-red-400 mt-4"
           >
             <Plus className="w-4 h-4" />
-            Adicionar Prêmio
+            Add Prize
           </button>
         </div>
       </div>
@@ -277,7 +277,7 @@ export default function CasinoSettings() {
              </div>
 
              <div className="p-4 bg-stone-900/50 rounded-sm border border-stone-800 text-xs text-stone-400 font-mono">
-               Exemplo: Se configurado para 1 resultar em 2 spins, uma doação total de 5 resultará em {10} spins automáticos no total da conta do membro.
+               Example: If configured to 1 resulting in 2 spins, a total donation of 5 will result in {10} automatic spins on the member total account.
              </div>
                </div>
             </div>

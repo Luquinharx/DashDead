@@ -25,8 +25,7 @@ export default function Navbar() {
 
   // Links visible only to logged users
   const protectedLinks = [
-    { to: '/roleta', label: 'Casino', icon: Gift },
-    { to: '/power-roleta', label: 'Power Casino', icon: Gift },
+    { to: '/cassino', label: 'Cassino', icon: Gift },
     { to: '/perfil', label: 'Profile', icon: User },
   ];
   

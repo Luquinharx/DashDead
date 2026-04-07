@@ -103,17 +103,25 @@ export default function Dashboard() {
   );
 
   const topEarnerData = useMemo(() => {
-    return [...data]
-      .sort((a, b) => {
-        const aWeekly = (a.weeklyValues && a.weeklyValues.length) ? a.weeklyValues[a.weeklyValues.length - 1] : 0;
-        const bWeekly = (b.weeklyValues && b.weeklyValues.length) ? b.weeklyValues[b.weeklyValues.length - 1] : 0;
-        return bWeekly - aWeekly;
-      })
+    // Deduplicate profiles by username, keeping the one with max weekly value
+    const uniqueData = Array.from(
+      data.reduce((map, m) => {
+        const weekly = (m.weeklyValues && m.weeklyValues.length) ? m.weeklyValues[m.weeklyValues.length - 1] : 0;
+        const current = map.get(m.username);
+        if (!current || weekly > current.weekly) {
+          map.set(m.username, { ...m, weekly });
+        }
+        return map;
+      }, new Map<string, MemberData & { weekly: number }>())
+    ).map(([_, m]) => m);
+
+    return uniqueData
+      .sort((a, b) => b.weekly - a.weekly)
       .slice(0, 3)
       .map((m, idx) => ({
         rank: idx + 1,
         username: m.username,
-        weekly: (m.weeklyValues && m.weeklyValues.length) ? m.weeklyValues[m.weeklyValues.length - 1] : 0
+        weekly: m.weekly
       }));
   }, [data]);
 

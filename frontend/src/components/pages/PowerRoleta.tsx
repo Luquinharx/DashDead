@@ -178,8 +178,8 @@ export default function PowerRoleta() {
   }, [spinning, girosDisponiveis, profile, refreshProfile, config.prizes, girosUsados, extraSpins, weeklyTotal]);
 
   return (
-    <div className="min-h-screen bg-black text-stone-200 font-serif selection:bg-red-900/30">
-      <div className="w-full w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="w-full text-stone-200 font-serif selection:bg-red-900/30">
+      <div className="w-full mx-auto space-y-8 animate-in fade-in duration-500">
 
         <header className="flex flex-col sm:flex-row items-center justify-between border-b border-white/10 pb-6 gap-4">
           <div className="flex items-center gap-4">

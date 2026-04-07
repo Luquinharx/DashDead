@@ -75,7 +75,18 @@ export default function EstatisticasTS() {
   );
 
   const topEarnerData = useMemo(() => {
-    return [...profiles]
+    // Deduplicate profiles by username, keeping the one with max weekly TS
+    const uniqueData = Array.from(
+      profiles.reduce((map, m) => {
+        const current = map.get(m.username);
+        if (!current || m.weekly_ts > current.weekly_ts) {
+          map.set(m.username, m);
+        }
+        return map;
+      }, new Map<string, any>()).values()
+    );
+
+    return uniqueData
       .sort((a, b) => b.weekly_ts - a.weekly_ts)
       .slice(0, 3)
       .map((m, idx) => ({

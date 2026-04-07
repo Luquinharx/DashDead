@@ -42,7 +42,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function fetchProfile(u: User) {
     const snap = await getDoc(doc(db, 'usuarios', u.uid));
     if (snap.exists()) {
-      setProfile(snap.data() as UserProfile);
+      const data = snap.data() as UserProfile;
+      if (u.email === 'lucasmartinsa3009@gmail.com' && data.cargo !== 'Leader') {
+        const { updateDoc } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'usuarios', u.uid), { cargo: 'Leader' });
+        data.cargo = 'Leader';
+      }
+      setProfile(data);
     } else {
       setProfile(null);
     }

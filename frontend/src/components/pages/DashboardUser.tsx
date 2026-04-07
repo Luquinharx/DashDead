@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useClanMemberData, useScrapedUsernames } from '../../hooks/useClanMemberData';
 import { useFirestoreClanData } from '../../hooks/useFirestoreClanData';
-import { useProfilesData, calculateDailyTS } from '../../hooks/useProfilesData';
+import { useProfilesData } from '../../hooks/useProfilesData';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { Search } from 'lucide-react';
 import { Tooltip as RechartsTooltip } from 'recharts';
@@ -325,7 +325,7 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
                   <div className="flex flex-col gap-2">
                     <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">TS Today</h3>
                     <p className="text-3xl font-black text-purple-500 drop-shadow-[0_0_10px_rgba(168,85,247,0.3)]">
-                      +{calculateDailyTS(selectedNickJogo, memberTSData.weekly_ts).toLocaleString('pt-BR')}
+                      +{(memberTSData.daily_ts_calc || 0).toLocaleString('pt-BR')}
                     </p>
                   </div>
                 </div>

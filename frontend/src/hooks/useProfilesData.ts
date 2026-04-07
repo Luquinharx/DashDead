@@ -2,62 +2,6 @@ import { useState, useEffect } from 'react';
 
 const FIREBASE_PROFILES_URL = "https://deadbb-2d5a8-default-rtdb.firebaseio.com/profiles.json";
 
-/**
- * Calculate when current "day" started (09:00 AM São Paulo time)
- */
-function getDayStartSaoPaulo(): Date {
-  const now = new Date();
-  
-  const formatter = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-
-  const parts = formatter.formatToParts(now);
-  const partsObj: Record<string, string> = {};
-  parts.forEach(part => {
-    partsObj[part.type] = part.value;
-  });
-
-  const year = parseInt(partsObj.year, 10);
-  const month = parseInt(partsObj.month, 10) - 1;
-  const day = parseInt(partsObj.day, 10);
-  const hour = parseInt(partsObj.hour, 10);
-
-  const todayAt9 = new Date(year, month, day, 9, 0, 0, 0);
-
-  if (hour < 9) {
-    todayAt9.setDate(todayAt9.getDate() - 1);
-  }
-
-  return todayAt9;
-}
-
-/**
- * Calculate daily TS based on weekly TS
- */
-export function calculateDailyTS(username: string, weeklyTS: number): number {
-  const dayStart = getDayStartSaoPaulo();
-  const dayStartTime = dayStart.getTime();
-  const storageKey = `ts_snapshot_${username}_${dayStartTime}`;
-  
-  const previousSnapshot = localStorage.getItem(storageKey);
-  
-  if (previousSnapshot) {
-    const previousValue = parseInt(previousSnapshot, 10);
-    const dailyDifference = Math.max(0, weeklyTS - previousValue);
-    return dailyDifference;
-  } else {
-    localStorage.setItem(storageKey, weeklyTS.toString());
-    return 0;
-  }
-}
-
 export interface MemberProfile {
   username: string;
   collected_at: string;
@@ -67,6 +11,7 @@ export interface MemberProfile {
   clan_weekly_ts: number;
   exp_since_death: number;
   all_time_ts: number;
+  daily_ts_calc?: number;
   total_exp: number;
   expected_loss_on_death: number;
   

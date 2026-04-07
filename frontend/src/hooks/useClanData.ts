@@ -3,63 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 const FIREBASE_URL = "https://deadbb-2d5a8-default-rtdb.firebaseio.com/profiles.json";
 const REFRESH_MS = 5 * 60 * 1000;
 
-/**
- * Calculate when current "day" started (09:00 AM São Paulo time)
- */
-function getDayStartSaoPaulo(): Date {
-  const now = new Date();
-  
-  // Format current time in São Paulo timezone
-  const formatter = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-
-  const parts = formatter.formatToParts(now);
-  const partsObj: Record<string, string> = {};
-  parts.forEach(part => {
-    partsObj[part.type] = part.value;
-  });
-
-  const year = parseInt(partsObj.year, 10);
-  const month = parseInt(partsObj.month, 10) - 1;
-  const day = parseInt(partsObj.day, 10);
-  const hour = parseInt(partsObj.hour, 10);
-
-  const todayAt9 = new Date(year, month, day, 9, 0, 0, 0);
-
-  if (hour < 9) {
-    todayAt9.setDate(todayAt9.getDate() - 1);
-  }
-
-  return todayAt9;
-}
-
-/**
- * Calculate daily loot based on weekly loots
- */
-function calculateDailyLoot(username: string, weeklyLoots: number): number {
-  const dayStart = getDayStartSaoPaulo();
-  const dayStartTime = dayStart.getTime();
-  const storageKey = `loot_snapshot_${username}_${dayStartTime}`;
-  
-  const previousSnapshot = localStorage.getItem(storageKey);
-  
-  if (previousSnapshot) {
-    const previousValue = parseInt(previousSnapshot, 10);
-    const dailyDifference = Math.max(0, weeklyLoots - previousValue);
-    return dailyDifference;
-  } else {
-    localStorage.setItem(storageKey, weeklyLoots.toString());
-    return 0;
-  }
-}
-
 export interface MemberData {
   username: string;
   currentAll: number;
@@ -110,7 +53,7 @@ export function useClanData() {
         const currentAll = val.all_time_loots || 0; // User's all time loots
         const clanAllTime = val.all_time_clan_loots || 0; // Clan all time loots
         const weeklyLoot = val.weekly_loots || 0; // User's weekly loots
-        const dailyLoot = calculateDailyLoot(u, weeklyLoot); // Calculate daily based on 09:00 SP reset
+        const dailyLoot = val.daily_loot_calc || 0; // Calculated by scraper
 
         out.push({
           username: u,

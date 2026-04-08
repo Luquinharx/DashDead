@@ -159,26 +159,6 @@ export default function GerenciarUsuarios() {
     }
   }
 
-  async function updateExtraSpins(docId: string, newValue: number) {
-    if (newValue < 0) newValue = 0;
-    try {
-      await updateDoc(doc(db, 'usuarios', docId), { extraSpins: newValue });
-      setUsuarios(prev => prev.map(u => u.docId === docId ? { ...u, extraSpins: newValue } : u));
-    } catch(err) {
-      console.error("Error updating spins", err);
-    }
-  }
-
-  async function updatePowerSpins(docId: string, newValue: number) {
-    if (newValue < 0) newValue = 0;
-    try {
-      await updateDoc(doc(db, 'usuarios', docId), { powerSpins: newValue });
-      setUsuarios(prev => prev.map(u => u.docId === docId ? { ...u, powerSpins: newValue } : u));
-    } catch(err) {
-      console.error("Error updating power spins", err);
-    }
-  }
-
   // Spin Actions
   async function markSpinDelivered(spinId: string) {
       try {
@@ -581,41 +561,11 @@ export default function GerenciarUsuarios() {
                             <td className="px-6 py-3">
                                 <RankBadge rank={profiles.find(p => p.username === u.nickJogo)?.rank || 'Street Cleaner'} />
                             </td>
-                            <td className="px-6 py-3 text-center">
-                                <input
-                                    key={`spins-${u.docId}-${u.extraSpins}`}
-                                    type="number"
-                                    min="0"
-                                    defaultValue={u.extraSpins || 0}
-                                    onBlur={(e) => {
-                                        const val = Number(e.target.value);
-                                        if (val !== (u.extraSpins || 0)) {
-                                            updateExtraSpins(u.docId, val);
-                                        }
-                                    }}
-                                    className={cn(
-                                        "w-16 px-1 py-1 bg-stone-950 border border-white/10 hover:border-white/30 focus:border-red-500 rounded-sm text-xs text-center font-bold outline-none transition-colors",
-                                        (u.extraSpins || 0) > 0 ? "text-emerald-500" : "text-stone-500"
-                                    )}
-                                />
+                            <td className="px-6 py-3 text-center text-xs font-bold text-emerald-500">
+                                {u.extraSpins && u.extraSpins > 0 ? `+${u.extraSpins}` : <span className="text-stone-700">0</span>}
                             </td>
-                            <td className="px-6 py-3 text-center">
-                                <input
-                                    key={`powerspins-${u.docId}-${u.powerSpins}`}
-                                    type="number"
-                                    min="0"
-                                    defaultValue={u.powerSpins || 0}
-                                    onBlur={(e) => {
-                                        const val = Number(e.target.value);
-                                        if (val !== (u.powerSpins || 0)) {
-                                            updatePowerSpins(u.docId, val);
-                                        }
-                                    }}
-                                    className={cn(
-                                        "w-16 px-1 py-1 bg-stone-950 border border-white/10 hover:border-white/30 focus:border-red-500 rounded-sm text-xs text-center font-bold outline-none transition-colors",
-                                        (u.powerSpins || 0) > 0 ? "text-emerald-500" : "text-stone-500"
-                                    )}
-                                />
+                            <td className="px-6 py-3 text-center text-xs font-bold text-emerald-500">
+                                {u.powerSpins && u.powerSpins > 0 ? `+${u.powerSpins}` : <span className="text-stone-700">0</span>}
                             </td>
                             <td className="px-6 py-3 text-center">
                                 <div className="flex items-center justify-center gap-3">

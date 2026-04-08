@@ -6,7 +6,7 @@ import { useCasinoConfig } from '../../hooks/useCasinoConfig';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, addDoc, Timestamp, updateDoc, doc, increment } from 'firebase/firestore';
 import { Gift } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, getNextMondayDeliveryTime } from '../../lib/utils';
 
 export default function Roleta() {
   const { profile, refreshProfile } = useAuth();
@@ -132,10 +132,12 @@ export default function Roleta() {
 
     // Save to Firestore
     try {
+      const deliveryTime = getNextMondayDeliveryTime();
       await addDoc(collection(db, 'roletas'), {
         userId: profile.userId,
         premio: selected.name,
         data: Timestamp.now(),
+        dataEntrega: Timestamp.fromDate(deliveryTime),
         entregue: false,
       });
 

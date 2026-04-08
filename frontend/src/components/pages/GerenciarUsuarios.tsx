@@ -60,7 +60,6 @@ export default function GerenciarUsuarios() {
   const [cadDiscord, setCadDiscord] = useState('');
   const [cadDataEntrada, setCadDataEntrada] = useState('');
   const [cadCargo, setCadCargo] = useState('Street Cleaner');
-  const [cadExtraSpins, setCadExtraSpins] = useState<number>(0);
   const [cadError, setCadError] = useState('');
   const [cadSuccess, setCadSuccess] = useState('');
   const [cadLoading, setCadLoading] = useState(false);
@@ -158,6 +157,16 @@ export default function GerenciarUsuarios() {
     }
   }
 
+  async function updateExtraSpins(docId: string, newValue: number) {
+    if (newValue < 0) newValue = 0;
+    try {
+      await updateDoc(doc(db, 'usuarios', docId), { extraSpins: newValue });
+      setUsuarios(prev => prev.map(u => u.docId === docId ? { ...u, extraSpins: newValue } : u));
+    } catch(err) {
+      console.error("Error updating spins", err);
+    }
+  }
+
   // Spin Actions
   async function markSpinDelivered(spinId: string) {
       try {
@@ -197,7 +206,6 @@ export default function GerenciarUsuarios() {
         discord: cadDiscord,
         dataEntrada: cadDataEntrada ? Timestamp.fromDate(new Date(cadDataEntrada + 'T00:00:00')) : Timestamp.now(),
         cargo: cadCargo,
-        extraSpins: cadExtraSpins,
         lootSemanal: 0,
         lootTotal: 0,
         roletaDisponivel: 0,
@@ -452,11 +460,8 @@ export default function GerenciarUsuarios() {
                     className="w-full px-4 py-2 bg-stone-950 border border-white/10 rounded-sm text-white focus:outline-none focus:border-red-500 transition-colors text-sm font-mono">
                     {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                </div>                <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-widest text-stone-500 font-bold">Giros Roleta</label>
-                    <input type="number" value={cadExtraSpins} onChange={e => setCadExtraSpins(Number(e.target.value))} 
-                    className="w-full px-4 py-2 bg-stone-950 border border-white/10 rounded-sm text-white focus:outline-none focus:border-red-500 transition-colors text-sm font-mono" />
-                </div>                <div className="flex items-end lg:col-span-1">
+                </div>
+                <div className="flex items-end lg:col-span-1">
                     <button type="submit" disabled={cadLoading}
                     className={cn(
                         "w-full py-2 rounded-sm font-bold text-xs uppercase tracking-[0.2em] transition-all border",
@@ -553,8 +558,23 @@ export default function GerenciarUsuarios() {
                             <td className="px-6 py-3">
                                 <RankBadge rank={profiles.find(p => p.username === u.nickJogo)?.rank || 'Street Cleaner'} />
                             </td>
-                            <td className="px-6 py-3 text-center text-xs font-bold text-emerald-500">
-                                {u.extraSpins && u.extraSpins > 0 ? `+${u.extraSpins}` : <span className="text-stone-700">0</span>}
+                            <td className="px-6 py-3 text-center">
+                                <input
+                                    key={`spins-${u.docId}-${u.extraSpins}`}
+                                    type="number"
+                                    min="0"
+                                    defaultValue={u.extraSpins || 0}
+                                    onBlur={(e) => {
+                                        const val = Number(e.target.value);
+                                        if (val !== (u.extraSpins || 0)) {
+                                            updateExtraSpins(u.docId, val);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "w-16 px-1 py-1 bg-stone-950 border border-white/10 hover:border-white/30 focus:border-red-500 rounded-sm text-xs text-center font-bold outline-none transition-colors",
+                                        (u.extraSpins || 0) > 0 ? "text-emerald-500" : "text-stone-500"
+                                    )}
+                                />
                             </td>
                             <td className="px-6 py-3 text-center">
                                 <div className="flex items-center justify-center gap-3">

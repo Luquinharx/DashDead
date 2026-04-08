@@ -28,11 +28,11 @@ export interface CasinoConfig {
 
 export const defaultCasinoConfig: CasinoConfig = {
   prizes: [
-    { id: 1, name: 'Normal (100k)', chance: 49, value: '100k', color: 'text-amber-500', icon: '💰' },
-    { id: 2, name: 'Rara (250k)', chance: 25, value: '250k', color: 'text-emerald-500', icon: '💵' },
-    { id: 3, name: 'Épica (500k)', chance: 15, value: '500k', color: 'text-blue-500', icon: '💎' },
-    { id: 4, name: 'Lendária (1M)', chance: 10, value: '1M', color: 'text-purple-500', icon: '👑' },
-    { id: 5, name: 'Mítica (2.5M)', chance: 1, value: '2.5M', color: 'text-red-500', icon: '🔥' },
+    { id: 1, name: 'Normal', chance: 49, value: '100k', color: 'text-amber-500', icon: '💰' },
+    { id: 2, name: 'Rare', chance: 25, value: '250k', color: 'text-emerald-500', icon: '💵' },
+    { id: 3, name: 'Epic', chance: 15, value: '500k', color: 'text-blue-500', icon: '💎' },
+    { id: 4, name: 'Legendary', chance: 10, value: '1M', color: 'text-purple-500', icon: '👑' },
+    { id: 5, name: 'Mythic', chance: 1, value: '2.5M', color: 'text-red-500', icon: '🔥' },
   ],
   lootRules: [
     { amount: 1000, spins: 1 },
@@ -55,8 +55,21 @@ export function useCasinoConfig() {
       if (docSnap.exists()) {
         const data = docSnap.data() as CasinoConfig;
         
+        
         let loadedPrizes = data.prizes || defaultCasinoConfig.prizes;
-        if (loadedPrizes.length > 0 && loadedPrizes[0].chance === 50 && loadedPrizes[0].name.includes('100k')) {
+
+        // Force transition to English / Value-less names for existing clients
+        loadedPrizes = loadedPrizes.map(p => {
+          let updatedName = p.name;
+          if (updatedName.includes('Normal')) updatedName = 'Normal';
+          if (updatedName.includes('Rara') || updatedName.includes('Rare')) updatedName = 'Rare';
+          if (updatedName.includes('Épica') || updatedName.includes('Epic')) updatedName = 'Epic';
+          if (updatedName.includes('Lendária') || updatedName.includes('Legendary')) updatedName = 'Legendary';
+          if (updatedName.includes('Mítica') || updatedName.includes('Mythic')) updatedName = 'Mythic';
+          return { ...p, name: updatedName };
+        });
+
+        if (loadedPrizes.length > 0 && loadedPrizes[0].chance >= 49 && loadedPrizes[0].name.includes('100k')) {
             loadedPrizes = defaultCasinoConfig.prizes; // Auto-update to new 49% default
             setDoc(doc(db, 'config', 'casino'), { ...data, prizes: loadedPrizes }, { merge: true });
         }

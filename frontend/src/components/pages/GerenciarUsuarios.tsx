@@ -60,6 +60,7 @@ export default function GerenciarUsuarios() {
   const [cadDiscord, setCadDiscord] = useState('');
   const [cadDataEntrada, setCadDataEntrada] = useState('');
   const [cadCargo, setCadCargo] = useState('Street Cleaner');
+  const [cadExtraSpins, setCadExtraSpins] = useState<number>(0);
   const [cadError, setCadError] = useState('');
   const [cadSuccess, setCadSuccess] = useState('');
   const [cadLoading, setCadLoading] = useState(false);
@@ -196,6 +197,7 @@ export default function GerenciarUsuarios() {
         discord: cadDiscord,
         dataEntrada: cadDataEntrada ? Timestamp.fromDate(new Date(cadDataEntrada + 'T00:00:00')) : Timestamp.now(),
         cargo: cadCargo,
+        extraSpins: cadExtraSpins,
         lootSemanal: 0,
         lootTotal: 0,
         roletaDisponivel: 0,
@@ -450,8 +452,11 @@ export default function GerenciarUsuarios() {
                     className="w-full px-4 py-2 bg-stone-950 border border-white/10 rounded-sm text-white focus:outline-none focus:border-red-500 transition-colors text-sm font-mono">
                     {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                </div>
-                <div className="flex items-end lg:col-span-2">
+                </div>                <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-widest text-stone-500 font-bold">Giros Roleta</label>
+                    <input type="number" value={cadExtraSpins} onChange={e => setCadExtraSpins(Number(e.target.value))} 
+                    className="w-full px-4 py-2 bg-stone-950 border border-white/10 rounded-sm text-white focus:outline-none focus:border-red-500 transition-colors text-sm font-mono" />
+                </div>                <div className="flex items-end lg:col-span-1">
                     <button type="submit" disabled={cadLoading}
                     className={cn(
                         "w-full py-2 rounded-sm font-bold text-xs uppercase tracking-[0.2em] transition-all border",
@@ -480,7 +485,7 @@ export default function GerenciarUsuarios() {
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('discord')}><div className="flex items-center">Cargos Discord {renderSortIcon('discord')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('cargo')}><div className="flex items-center">Access {renderSortIcon('cargo')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('rank')}><div className="flex items-center">Scrap Rank {renderSortIcon('rank')}</div></th>
-                        <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('extraSpins')}><div className="flex items-center">Balance {renderSortIcon('extraSpins')}</div></th>
+                        <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors whitespace-nowrap" onClick={() => handleSort('extraSpins')}><div className="flex items-center">Giros Roleta {renderSortIcon('extraSpins')}</div></th>
                         <th className="px-6 py-4 text-center font-normal">Actions</th>
                     </tr>
                     </thead>

@@ -45,6 +45,7 @@ export default function GerenciarUsuarios() {
   // Spins State
   const [spins, setSpins] = useState<any[]>([]);
   const [spinsLoading, setSpinsLoading] = useState(false);
+  const [deliveryWarning, setDeliveryWarning] = useState<{spinId: string; type: 'spin' | 'powerspin'} | null>(null);
 
   const [powerSpinsActivity, setPowerSpinsActivity] = useState<any[]>([]);
   const [powerSpinsLoading, setPowerSpinsLoading] = useState(false);
@@ -202,10 +203,23 @@ export default function GerenciarUsuarios() {
   }
 
   // Spin Actions
-  async function markSpinDelivered(spinId: string) {
+  async function markSpinDelivered(spinId: string, forceOverride: boolean = false) {
       try {
+          const spin = spins.find(s => s.id === spinId);
+          if (!spin) return;
+
+          const now = new Date();
+          const deliveryTime = spin.dataEntrega?.toDate ? spin.dataEntrega.toDate() : new Date();
+
+          // Check if delivery time hasn't passed yet
+          if (!forceOverride && now < deliveryTime) {
+              setDeliveryWarning({ spinId, type: 'spin' });
+              return;
+          }
+
           await updateDoc(doc(db, 'roletas', spinId), { entregue: true });
           setSpins(prev => prev.map(s => s.id === spinId ? { ...s, entregue: true } : s));
+          setDeliveryWarning(null);
       } catch (e) {
           console.error("Error marking delivered", e);
       }
@@ -222,10 +236,23 @@ export default function GerenciarUsuarios() {
   }
 
 
-  async function markPowerSpinDelivered(spinId: string) {
+  async function markPowerSpinDelivered(spinId: string, forceOverride: boolean = false) {
       try {
+          const spin = powerSpinsActivity.find(s => s.id === spinId);
+          if (!spin) return;
+
+          const now = new Date();
+          const deliveryTime = spin.dataEntrega?.toDate ? spin.dataEntrega.toDate() : new Date();
+
+          // Check if delivery time hasn't passed yet
+          if (!forceOverride && now < deliveryTime) {
+              setDeliveryWarning({ spinId, type: 'powerspin' });
+              return;
+          }
+
           await updateDoc(doc(db, 'power_roletas', spinId), { entregue: true });
           setPowerSpinsActivity(prev => prev.map(s => s.id === spinId ? { ...s, entregue: true } : s));
+          setDeliveryWarning(null);
       } catch (e) {
           console.error("Error marking delivered", e);
       }
@@ -893,6 +920,51 @@ export default function GerenciarUsuarios() {
           <div className="flex flex-col gap-12">
              <CasinoSettings />
              <PowerRouletteSettings />
+          </div>
+        )}
+
+        {/* Delivery Date Warning Modal */}
+        {deliveryWarning && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-stone-950 border border-amber-900/50 rounded-sm p-8 max-w-md space-y-6 animate-in zoom-in-95 duration-300">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-900/20 rounded-full text-amber-500">
+                  <Check className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-white uppercase tracking-widest">Delivery Not Available</h3>
+                  <p className="text-sm text-stone-400 mt-1">Prize still locked until Monday 8:00 AM (São Paulo time)</p>
+                </div>
+              </div>
+
+              <div className="bg-black/50 border border-white/5 rounded-sm p-4">
+                <p className="text-[12px] text-stone-300 font-mono text-center">
+                  {deliveryWarning.type === 'spin' ? 'SLOT SPIN RECORD' : 'POWER WHEEL RECORD'}
+                </p>
+                <p className="text-xs text-stone-500 text-center mt-2">This prize can be marked as delivered starting Monday at 8:00 AM.</p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    if (deliveryWarning.type === 'spin') {
+                      markSpinDelivered(deliveryWarning.spinId, true);
+                    } else {
+                      markPowerSpinDelivered(deliveryWarning.spinId, true);
+                    }
+                  }}
+                  className="flex-1 py-2 bg-amber-900/30 border border-amber-900/50 text-amber-500 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-amber-900/50 transition-colors"
+                >
+                  Force Deliver
+                </button>
+                <button
+                  onClick={() => setDeliveryWarning(null)}
+                  className="flex-1 py-2 bg-stone-900 border border-stone-800 text-stone-400 rounded-sm font-bold text-xs uppercase tracking-widest hover:bg-stone-800 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

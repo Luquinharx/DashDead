@@ -57,7 +57,7 @@ export default function PowerRoleta() {
   const isQualified = isPowerRaw && !isClanEventHighlight;
 
   const weeklyTotal = isQualified ? 1 : 0;
-  const extraSpins = profile?.extraSpins || 0;
+  const powerSpins = profile?.powerSpins || 0;
 
   useEffect(() => {
     if (!profile?.userId) return;
@@ -99,7 +99,7 @@ export default function PowerRoleta() {
   }, [profile, startOfPrizeWeek]);
 
   const remainingWeeklySpins = Math.max(0, weeklyTotal - usedSpins);
-  const availableSpins = Math.min(3, remainingWeeklySpins + extraSpins);
+  const availableSpins = Math.min(3, remainingWeeklySpins + powerSpins);
 
   const spinWheel = useCallback(async () => {
     if (spinning || availableSpins <= 0 || !profile?.userId || config.prizes.length === 0) return;
@@ -148,9 +148,9 @@ export default function PowerRoleta() {
       });
 
       const hasWeeklyAvailable = weeklyTotal > usedSpins;
-      if (!hasWeeklyAvailable && extraSpins > 0) {
+      if (!hasWeeklyAvailable && powerSpins > 0) {
         await updateDoc(doc(db, 'usuarios', profile.userId), {
-            extraSpins: increment(-1)
+            powerSpins: increment(-1)
         });
       }
     } catch (err) {
@@ -165,7 +165,7 @@ export default function PowerRoleta() {
     
     await refreshProfile?.();
     setSpinning(false);
-  }, [spinning, availableSpins, profile, config.prizes, rotation, weeklyTotal, usedSpins, extraSpins, refreshProfile]);
+  }, [spinning, availableSpins, profile, config.prizes, rotation, weeklyTotal, usedSpins, powerSpins, refreshProfile]);
 
   return (
     <div className="w-full text-stone-200 font-serif selection:bg-purple-900/30 pt-4">
@@ -220,7 +220,7 @@ export default function PowerRoleta() {
              <div className="absolute top-0 left-0 w-1 h-full bg-fuchsia-500"></div>
             <p className="text-xs text-purple-400 uppercase tracking-widest font-black">Extra Spins</p>
             <p className="text-3xl font-black text-fuchsia-400 mt-2 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]">
-                {extraSpins}
+                {powerSpins}
             </p>
           </div>
         </div>

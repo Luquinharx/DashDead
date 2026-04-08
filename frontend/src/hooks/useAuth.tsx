@@ -14,7 +14,8 @@ export interface UserProfile {
   lootSemanal: number;
   lootTotal: number;
   roletaDisponivel: number;
-  extraSpins?: number; // Saldo manual de giros
+  extraSpins?: number; // Saldo manual de giros da roleta
+  powerSpins?: number; // Saldo manual de giros da slot machine
   criadoEm: any;
 }
 

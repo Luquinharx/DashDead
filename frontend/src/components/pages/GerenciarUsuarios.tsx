@@ -39,7 +39,7 @@ export default function GerenciarUsuarios() {
   const [usuarios, setUsuarios] = useState<(UserProfile & { docId: string })[]>([]);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ nick: '', discord: '', cargo: '', nickJogo: '', extraSpins: 0 });
+  const [editForm, setEditForm] = useState({ nick: '', discord: '', cargo: '', nickJogo: '', extraSpins: 0, powerSpins: 0 });
   const [loading, setLoading] = useState(true);
 
   // Spins State
@@ -128,6 +128,7 @@ export default function GerenciarUsuarios() {
         cargo: u.cargo, 
         nickJogo: u.nickJogo || '',
         extraSpins: u.extraSpins || 0,
+        powerSpins: u.powerSpins || 0,
     });
   }
 
@@ -139,6 +140,7 @@ export default function GerenciarUsuarios() {
         cargo: editForm.cargo,
         nickJogo: editForm.nickJogo,
         extraSpins: Number(editForm.extraSpins),
+        powerSpins: Number(editForm.powerSpins),
       });
       setEditingId(null);
       await loadAll();
@@ -164,6 +166,16 @@ export default function GerenciarUsuarios() {
       setUsuarios(prev => prev.map(u => u.docId === docId ? { ...u, extraSpins: newValue } : u));
     } catch(err) {
       console.error("Error updating spins", err);
+    }
+  }
+
+  async function updatePowerSpins(docId: string, newValue: number) {
+    if (newValue < 0) newValue = 0;
+    try {
+      await updateDoc(doc(db, 'usuarios', docId), { powerSpins: newValue });
+      setUsuarios(prev => prev.map(u => u.docId === docId ? { ...u, powerSpins: newValue } : u));
+    } catch(err) {
+      console.error("Error updating power spins", err);
     }
   }
 
@@ -206,6 +218,8 @@ export default function GerenciarUsuarios() {
         discord: cadDiscord,
         dataEntrada: cadDataEntrada ? Timestamp.fromDate(new Date(cadDataEntrada + 'T00:00:00')) : Timestamp.now(),
         cargo: cadCargo,
+        extraSpins: 0,
+        powerSpins: 0,
         lootSemanal: 0,
         lootTotal: 0,
         roletaDisponivel: 0,
@@ -491,6 +505,7 @@ export default function GerenciarUsuarios() {
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('cargo')}><div className="flex items-center">Access {renderSortIcon('cargo')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('rank')}><div className="flex items-center">Scrap Rank {renderSortIcon('rank')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors whitespace-nowrap" onClick={() => handleSort('extraSpins')}><div className="flex items-center">Giros Roleta {renderSortIcon('extraSpins')}</div></th>
+                        <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors whitespace-nowrap" onClick={() => handleSort('powerSpins')}><div className="flex items-center">Giros Slot {renderSortIcon('powerSpins')}</div></th>
                         <th className="px-6 py-4 text-center font-normal">Actions</th>
                     </tr>
                     </thead>
@@ -529,6 +544,14 @@ export default function GerenciarUsuarios() {
                                     type="number" 
                                     value={editForm.extraSpins} 
                                     onChange={e => setEditForm({ ...editForm, extraSpins: Number(e.target.value) })}
+                                    className="w-16 px-2 py-1 bg-black border border-white/20 rounded-sm text-white text-xs text-center" 
+                                />
+                            </td>
+                            <td className="px-6 py-3">
+                                <input 
+                                    type="number" 
+                                    value={editForm.powerSpins} 
+                                    onChange={e => setEditForm({ ...editForm, powerSpins: Number(e.target.value) })}
                                     className="w-16 px-2 py-1 bg-black border border-white/20 rounded-sm text-white text-xs text-center" 
                                 />
                             </td>
@@ -573,6 +596,24 @@ export default function GerenciarUsuarios() {
                                     className={cn(
                                         "w-16 px-1 py-1 bg-stone-950 border border-white/10 hover:border-white/30 focus:border-red-500 rounded-sm text-xs text-center font-bold outline-none transition-colors",
                                         (u.extraSpins || 0) > 0 ? "text-emerald-500" : "text-stone-500"
+                                    )}
+                                />
+                            </td>
+                            <td className="px-6 py-3 text-center">
+                                <input
+                                    key={`powerspins-${u.docId}-${u.powerSpins}`}
+                                    type="number"
+                                    min="0"
+                                    defaultValue={u.powerSpins || 0}
+                                    onBlur={(e) => {
+                                        const val = Number(e.target.value);
+                                        if (val !== (u.powerSpins || 0)) {
+                                            updatePowerSpins(u.docId, val);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "w-16 px-1 py-1 bg-stone-950 border border-white/10 hover:border-white/30 focus:border-red-500 rounded-sm text-xs text-center font-bold outline-none transition-colors",
+                                        (u.powerSpins || 0) > 0 ? "text-emerald-500" : "text-stone-500"
                                     )}
                                 />
                             </td>

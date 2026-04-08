@@ -305,17 +305,8 @@ export default function PowerRoleta() {
                                     left: 'calc(50% - 50px)',
                                     transform: `rotate(${currentRotation}deg)`
                                 }}>
-                                    <div className="text-3xl sm:text-5xl drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] mb-3">
+                                    <div className="text-3xl sm:text-5xl drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
                                         {p.icon}
-                                    </div>
-                                    <div className={cn(
-                                        "font-black text-[10px] sm:text-[13px] uppercase tracking-wider text-center leading-tight drop-shadow-lg",
-                                        p.color ? p.color : 'text-white'
-                                    )} title={p.name}>
-                                        {p.name.length > 12 ? p.name.substring(0, 10).trim() + '...' : p.name}
-                                    </div>
-                                    <div className="text-[9px] text-stone-500 font-mono tracking-widest mt-1 opacity-75 hidden sm:block">
-                                      {p.chance}%
                                     </div>
                                 </div>
                             )

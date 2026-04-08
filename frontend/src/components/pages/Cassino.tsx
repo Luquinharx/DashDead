@@ -23,7 +23,7 @@ export default function Cassino() {
             )}
           >
             <Gift className="w-5 h-5" />
-            <span className="hidden sm:inline">Blood</span> Slots
+            <span className="hidden sm:inline">Blood</span> Slot
           </button>
 
           <button
@@ -36,7 +36,7 @@ export default function Cassino() {
             )}
           >
             <Zap className="w-5 h-5" />
-            <span className="hidden sm:inline">Power</span> Wheel
+            <span className="hidden sm:inline">Blood</span> Roleta
           </button>
         </div>
 

@@ -178,7 +178,7 @@ export default function PowerRoleta() {
             </div>
             <div>
               <h1 className="text-3xl md:text-5xl font-black text-white tracking-widest uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] font-sans">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-600">Power</span> Wheel
+                <span className="text-red-600">Blood</span> Roleta
               </h1>
               <p className="text-stone-400 font-medium tracking-widest uppercase mt-2 text-sm flex items-center gap-2">
                 <Info className="w-4 h-4"/> ONE SPIN PER WEEK • QUALIFICATION: 800+ LOOTS OR 350M+ TS

@@ -168,7 +168,7 @@ export default function Roleta() {
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-widest uppercase">
-                <span className="text-red-600">Blood</span> Slots
+                <span className="text-red-600">Blood</span> Slot
               </h1>
               <p className="text-stone-500 text-sm font-serif tracking-wide uppercase mt-1">
                 One spin per week ÔÇó Qualification: 5k+ Loot
@@ -250,7 +250,7 @@ export default function Roleta() {
                       : "bg-stone-900 text-stone-700 cursor-not-allowed border-stone-800"
                 )}
               >
-                {spinning ? 'ADICIONANDO...' : 'ADICIONAR ITEM'}
+                {spinning ? 'SPINNING...' : 'SPIN'}
             </button>
 
              {/* Result Display */}

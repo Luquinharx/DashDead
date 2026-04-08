@@ -35,7 +35,7 @@ export default function GerenciarUsuarios() {
     const isAdmin = isLeader || isHighLeader;
 
     // Tabs
-    const [activeTab, setActiveTab] = useState<'members' | 'spins' | 'casino'>(isHighLeader ? 'spins' : 'members');
+    const [activeTab, setActiveTab] = useState<'members' | 'spins' | 'powerspins' | 'casino'>(isHighLeader ? 'spins' : 'members');
   const [usuarios, setUsuarios] = useState<(UserProfile & { docId: string })[]>([]);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -45,6 +45,9 @@ export default function GerenciarUsuarios() {
   // Spins State
   const [spins, setSpins] = useState<any[]>([]);
   const [spinsLoading, setSpinsLoading] = useState(false);
+
+  const [powerSpinsActivity, setPowerSpinsActivity] = useState<any[]>([]);
+  const [powerSpinsLoading, setPowerSpinsLoading] = useState(false);
 
   // --- Pagination & Sorting state ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -115,9 +118,48 @@ export default function GerenciarUsuarios() {
     }
   }
 
+  async function loadPowerSpins() {
+    setPowerSpinsLoading(true);
+    try {
+        if (usuarios.length === 0) await loadAll();
+
+        const q = query(collection(db, 'power_roletas'), orderBy('data', 'desc'), limit(100));
+        const snap = await getDocs(q);
+        const list: any[] = [];
+        
+        let currentUsers = usuarios;
+        if (currentUsers.length === 0) {
+            const uSnap = await getDocs(collection(db, 'usuarios'));
+            const uList: any[] = [];
+            uSnap.forEach(u => uList.push({ ...u.data(), docId: u.id }));
+            currentUsers = uList;
+            setUsuarios(uList);
+        }
+
+        snap.forEach(d => {
+            const data = d.data();
+            const uDetails = currentUsers.find(u => u.docId === data.userId || u.userId === data.userId);
+            const resolvedName = uDetails ? (uDetails.nickJogo || uDetails.nick || data.userId) : data.userId;
+            
+            list.push({
+                id: d.id,
+                ...data,
+                resolvedName,
+                formattedDate: data.data?.toDate?.() ? data.data.toDate().toLocaleDateString('pt-BR') + ' ' + data.data.toDate().toLocaleTimeString('pt-BR') : 'Invalid Date'
+            });
+        });
+        setPowerSpinsActivity(list);
+    } catch (error) {
+        console.error("Error loading power spins", error);
+    } finally {
+        setPowerSpinsLoading(false);
+    }
+  }
+
   useEffect(() => { 
       if (activeTab === 'members') loadAll(); 
       if (activeTab === 'spins') { loadAll(); loadSpins(); }
+      if (activeTab === 'powerspins') { loadAll(); loadPowerSpins(); }
   }, [activeTab]);
 
   function startEdit(u: UserProfile & { docId: string }) {
@@ -179,6 +221,25 @@ export default function GerenciarUsuarios() {
       }
   }
 
+
+  async function markPowerSpinDelivered(spinId: string) {
+      try {
+          await updateDoc(doc(db, 'power_roletas', spinId), { entregue: true });
+          setPowerSpinsActivity(prev => prev.map(s => s.id === spinId ? { ...s, entregue: true } : s));
+      } catch (e) {
+          console.error("Error marking delivered", e);
+      }
+  }
+
+  async function deletePowerSpin(spinId: string) {
+      if(!confirm("Are you sure you want to delete this power spin record?")) return;
+      try {
+          await deleteDoc(doc(db, 'power_roletas', spinId));
+          setPowerSpinsActivity(prev => prev.filter(s => s.id !== spinId));
+      } catch (e) {
+          console.error("Error deleting power spin", e);
+      }
+  }
 
   async function handleCadastro(e: React.FormEvent) {
     e.preventDefault();
@@ -341,6 +402,15 @@ export default function GerenciarUsuarios() {
                 )}
               >
                   Slot Spins
+              </button>
+              <button
+                onClick={() => setActiveTab('powerspins')}
+                className={cn(
+                    "px-6 py-2 rounded-sm text-sm uppercase tracking-widest font-bold transition-all whitespace-nowrap",
+                    activeTab === 'powerspins' ? "bg-amber-900/30 text-amber-500 border border-amber-900/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]" : "text-stone-500 hover:text-stone-300 hover:bg-white/5"
+                )}
+              >
+                  Power Wheel Spins
               </button>
               <button
                 onClick={() => setActiveTab('casino')}
@@ -702,6 +772,110 @@ export default function GerenciarUsuarios() {
                                         </tr>
                                     )})}
                                     {spins.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="text-center py-12 text-stone-600 font-serif uppercase tracking-widest">No spin records found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+             </div>
+        )}
+
+        {/* POWER SPINS VIEW */}
+        {activeTab === 'powerspins' && (
+             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                <div className="bg-stone-950/50 border border-white/10 rounded-sm overflow-hidden backdrop-blur-sm">
+                    
+                    <div className="px-6 py-5 border-b border-white/10 bg-black flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                            <Gift className="w-5 h-5 text-red-600" />
+                            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Recent Power Wheel Activity (Last 100)</h2>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                            <div className="relative flex-1 md:flex-none">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-500" />
+                                <input 
+                                    type="text" 
+                                    placeholder="FILTER BY OPERATIVE..." 
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    className="w-full md:w-64 pl-8 pr-4 py-1.5 bg-black border border-white/10 rounded-sm text-white text-xs uppercase tracking-wider focus:outline-none focus:border-red-600 transition-colors"
+                                />
+                            </div>
+                            <button onClick={loadPowerSpins} className="text-xs text-stone-500 uppercase tracking-wider hover:text-white transition-colors whitespace-nowrap">
+                                Refresh Data
+                            </button>
+                        </div>
+                    </div>
+
+                    {powerSpinsLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4 text-red-500">
+                            <Loader2 className="w-8 h-8 animate-spin" />
+                            <span className="text-xs uppercase tracking-widest font-bold">Retrieving Data...</span>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm font-mono">
+                                <thead className="text-[10px] text-stone-500 uppercase bg-black border-b border-white/10 tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4 font-normal text-left">Date</th>
+                                        <th className="px-6 py-4 font-normal text-left">Username</th>
+                                        <th className="px-6 py-4 font-normal text-left">Prize</th>
+                                        <th className="px-6 py-4 font-normal text-center">Status</th>
+                                        <th className="px-6 py-4 font-normal text-center">Management</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {powerSpinsActivity
+                                    .filter(spin => {
+                                        const userName = spin.resolvedName || spin.userId || 'Unknown';
+                                        return userName.toLowerCase().includes(search.toLowerCase());
+                                    })
+                                    .map(spin => {
+                                        return (
+                                        <tr key={spin.id} className="hover:bg-white/5 transition-colors">
+                                            <td className="px-6 py-3 text-stone-500 text-xs">{spin.formattedDate}</td>
+                                            <td className="px-6 py-3 text-white font-serif tracking-wide">
+                                                {spin.resolvedName || <span className="text-stone-600 text-[10px] font-mono">{spin.userId}</span>}
+                                            </td>
+                                            <td className="px-6 py-3 text-red-400 font-bold">{spin.premio}</td>
+                                            <td className="px-6 py-3 text-center">
+                                                <span className={cn(
+                                                    "inline-flex px-2 py-0.5 rounded-sm text-[10px] uppercase font-bold tracking-widest border",
+                                                    spin.entregue 
+                                                        ? "bg-emerald-950/30 text-emerald-500 border-emerald-900/50" 
+                                                        : "bg-red-950/30 text-amber-500 border-red-900/50 animate-pulse"
+                                                )}>
+                                                    {spin.entregue ? 'DELIVERED' : 'PENDING'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-3 text-center">
+                                                <div className="flex items-center justify-center gap-3">
+                                                    {!spin.entregue && (
+                                                        <button 
+                                                            onClick={() => markPowerSpinDelivered(spin.id)}
+                                                            className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-emerald-500 hover:text-emerald-400 bg-emerald-900/10 border border-emerald-900/30 px-3 py-1.5 rounded-sm transition-all hover:bg-emerald-900/20"
+                                                            title="Mark as Delivered"
+                                                        >
+                                                            <Check className="w-3 h-3" /> Confirm
+                                                        </button>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => deletePowerSpin(spin.id)}
+                                                        className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-red-700 hover:text-red-500 hover:bg-red-950/30 px-2 py-1.5 rounded-sm transition-colors"
+                                                        title="Delete Record"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )})}
+                                    {powerSpinsActivity.length === 0 && (
                                         <tr>
                                             <td colSpan={5} className="text-center py-12 text-stone-600 font-serif uppercase tracking-widest">No spin records found.</td>
                                         </tr>

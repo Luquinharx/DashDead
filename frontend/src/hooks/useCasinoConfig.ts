@@ -66,6 +66,12 @@ export function useCasinoConfig() {
           if (updatedName.includes('Épica') || updatedName.includes('Epic')) updatedName = 'Epic';
           if (updatedName.includes('Lendária') || updatedName.includes('Legendary')) updatedName = 'Legendary';
           if (updatedName.includes('Mítica') || updatedName.includes('Mythic')) updatedName = 'Mythic';
+
+          if (updatedName.includes('Média') || updatedName.includes('Media')) updatedName = 'Medium';
+          if (updatedName.includes('Grande')) updatedName = 'Large';
+          if (updatedName.includes('Mega')) updatedName = 'Mega';
+          if (updatedName.includes('Super')) updatedName = 'Super';
+          if (updatedName.includes('Jackpot')) updatedName = 'Jackpot';
           return { ...p, name: updatedName };
         });
 

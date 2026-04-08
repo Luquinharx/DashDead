@@ -30,13 +30,13 @@ export default function Cassino() {
             onClick={() => setActiveTab('power')}
             className={cn(
               "flex items-center gap-3 px-6 py-3 rounded-sm font-bold uppercase tracking-widest transition-all",
-              activeTab === 'power' 
-                ? "bg-purple-900/20 text-purple-400 border border-purple-900/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]" 
+              activeTab === 'power'
+                ? "bg-amber-900/20 text-amber-500 border border-amber-900/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
                 : "bg-black text-stone-500 border border-white/5 hover:text-white hover:border-white/20"
             )}
           >
             <Zap className="w-5 h-5" />
-            <span className="hidden sm:inline">Power</span> Roleta
+            <span className="hidden sm:inline">Power</span> Wheel
           </button>
         </div>
 

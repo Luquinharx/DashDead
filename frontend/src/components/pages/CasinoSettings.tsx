@@ -160,15 +160,15 @@ export default function CasinoSettings() {
         <div className="bg-stone-950/50 border border-white/10 rounded-sm p-6">
           <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
             <div>
-              <h2 className="text-xl font-bold text-white uppercase tracking-widest">Spins por Loot</h2>
-              <p className="text-xs text-stone-500 font-mono mt-1">Marcos de loot que dão spins</p>
+              <h2 className="text-xl font-bold text-white uppercase tracking-widest">Spins per Loot</h2>
+              <p className="text-xs text-stone-500 font-mono mt-1">Loot milestones that award spins</p>
             </div>
           </div>
 
           <div className="space-y-4">
              <div className="grid grid-cols-2 gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-widest px-2">
-                <div>Total de Loot Acumulado</div>
-                <div>Spins Concedidos (Total)</div>
+                <div>Total Accumulated Loot</div>
+                <div>Granted Spins (Total)</div>
              </div>
 
              {localConfig.lootRules.map((rule, index) => (
@@ -220,7 +220,7 @@ export default function CasinoSettings() {
               className="flex items-center gap-2 text-xs text-red-500 uppercase tracking-widest font-bold hover:text-red-400 mt-2"
             >
               <Plus className="w-4 h-4" />
-              Adicionar Marco
+              Add Milestone
             </button>
           </div>
         </div>
@@ -229,13 +229,13 @@ export default function CasinoSettings() {
         <div className="bg-stone-950/50 border border-white/10 rounded-sm p-6">
           <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
             <div>
-              <h2 className="text-xl font-bold text-white uppercase tracking-widest">Spins por Doação</h2>
-              <p className="text-xs text-stone-500 font-mono mt-1">Conversão de dinheiro donado para spins</p>
+              <h2 className="text-xl font-bold text-white uppercase tracking-widest">Spins per Donation</h2>
+              <p className="text-xs text-stone-500 font-mono mt-1">Conversion of donated money to spins</p>
             </div>
           </div>
 
           <div className="space-y-6">
-             <div className="flex flex-col gap-2">                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Ativar Spin por Doações</label>
+             <div className="flex flex-col gap-2">                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Enable Spins per Donation</label>
                   <button
                     onClick={() => setLocalConfig(prev => ({
                       ...prev, donationRule: { ...prev.donationRule, enabled: !(prev.donationRule.enabled ?? true) }
@@ -253,7 +253,7 @@ export default function CasinoSettings() {
                </div>
                
                <div className={cn("transition-opacity", !(localConfig.donationRule.enabled ?? true) && "opacity-50 pointer-events-none")}>
-                 <div className="flex flex-col gap-2 mb-6">                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Valor doado ($ ou Dinheiro in-game base)</label>
+                 <div className="flex flex-col gap-2 mb-6">                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Donated Value ($ or Base in-game money)</label>
                 <input
                   type="number"
                   value={localConfig.donationRule.amount}
@@ -265,7 +265,7 @@ export default function CasinoSettings() {
              </div>
              
              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Resulta em Quantos Spins?</label>
+                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Results in How Many Spins?</label>
                 <input
                   type="number"
                   value={localConfig.donationRule.spins}

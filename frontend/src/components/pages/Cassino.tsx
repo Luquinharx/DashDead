@@ -17,21 +17,21 @@ export default function Cassino() {
             onClick={() => setActiveTab('slots')}
             className={cn(
               "flex items-center gap-3 px-6 py-3 rounded-sm font-bold uppercase tracking-widest transition-all",
-              activeTab === 'slots' 
-                ? "bg-red-900/20 text-red-500 border border-red-900/30 shadow-[0_0_15px_rgba(220,38,38,0.2)]" 
+              activeTab === 'slots'
+                ? "bg-red-900/20 text-red-500 border border-red-900/30 shadow-[0_0_15px_rgba(220,38,38,0.2)]"
                 : "bg-black text-stone-500 border border-white/5 hover:text-white hover:border-white/20"
             )}
           >
             <Gift className="w-5 h-5" />
             <span className="hidden sm:inline">Blood</span> Slots
           </button>
-          
+
           <button
             onClick={() => setActiveTab('power')}
             className={cn(
               "flex items-center gap-3 px-6 py-3 rounded-sm font-bold uppercase tracking-widest transition-all",
               activeTab === 'power'
-                ? "bg-amber-900/20 text-amber-500 border border-amber-900/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                ? "bg-purple-900/20 text-purple-500 border border-purple-900/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
                 : "bg-black text-stone-500 border border-white/5 hover:text-white hover:border-white/20"
             )}
           >

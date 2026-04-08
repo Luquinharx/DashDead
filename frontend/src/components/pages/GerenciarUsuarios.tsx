@@ -554,8 +554,8 @@ export default function GerenciarUsuarios() {
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('discord')}><div className="flex items-center">Cargos Discord {renderSortIcon('discord')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('cargo')}><div className="flex items-center">Access {renderSortIcon('cargo')}</div></th>
                         <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('rank')}><div className="flex items-center">Scrap Rank {renderSortIcon('rank')}</div></th>
-                        <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors whitespace-nowrap" onClick={() => handleSort('extraSpins')}><div className="flex items-center">Giros Roleta {renderSortIcon('extraSpins')}</div></th>
-                        <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors whitespace-nowrap" onClick={() => handleSort('powerSpins')}><div className="flex items-center">Giros Slot {renderSortIcon('powerSpins')}</div></th>
+                          <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors whitespace-nowrap" onClick={() => handleSort('extraSpins')}><div className="flex items-center">Slot Spins {renderSortIcon('extraSpins')}</div></th>
+                          <th className="px-6 py-4 font-normal cursor-pointer hover:text-white transition-colors whitespace-nowrap" onClick={() => handleSort('powerSpins')}><div className="flex items-center">Power Wheel Spins {renderSortIcon('powerSpins')}</div></th>
                         <th className="px-6 py-4 text-center font-normal">Actions</th>
                     </tr>
                     </thead>

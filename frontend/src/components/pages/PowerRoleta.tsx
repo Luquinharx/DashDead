@@ -5,7 +5,7 @@ import { usePowerRouletteConfig, type PowerRoulettePrize } from '../../hooks/use
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, addDoc, Timestamp, updateDoc, doc, increment } from 'firebase/firestore';
 import { Zap, Info } from 'lucide-react';
-import { cn, getNextMondayDeliveryTime } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 
 export default function PowerRoleta() {
   const { profile, refreshProfile } = useAuth();
@@ -140,13 +140,11 @@ export default function PowerRoleta() {
     await new Promise(r => setTimeout(r, 6000));
     
     try {
-      const deliveryTime = getNextMondayDeliveryTime();
       await addDoc(collection(db, 'power_roletas'), {
         userId: profile.userId,
         premio: selected.name,
         data: Timestamp.now(),
-        dataEntrega: Timestamp.fromDate(deliveryTime),
-        entregue: false,
+        entregue: true,
       });
 
       const hasWeeklyAvailable = weeklyTotal > usedSpins;

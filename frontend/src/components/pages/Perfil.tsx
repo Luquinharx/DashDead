@@ -6,14 +6,13 @@ import { useClanMemberData } from '../../hooks/useClanMemberData';
 import { useFirestoreClanData } from '../../hooks/useFirestoreClanData';
 import { useProfilesData } from '../../hooks/useProfilesData';
 import { RankBadge } from '../RankBadge';
-import { User, Edit3, Save, X, Check, Dna, Clock } from 'lucide-react';
+import { User, Edit3, Save, X, Check, Dna } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface RoletaEntry {
   id: string;
   premio: string;
   data: string;
-  dataEntrega: Date;
   entregue: boolean;
 }
 
@@ -27,7 +26,6 @@ export default function Perfil() {
   const [discord, setDiscord] = useState('');
   const [saving, setSaving] = useState(false);
   const [roletas, setRoletas] = useState<RoletaEntry[]>([]);
-  const [claimError, setClaimError] = useState<{roletaId: string; message: string} | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -48,7 +46,6 @@ export default function Perfil() {
           id: d.id,
           premio: data.premio,
           data: data.data?.toDate?.() ? data.data.toDate().toLocaleDateString('pt-BR') : String(data.data),
-          dataEntrega: data.dataEntrega?.toDate?.() || new Date(),
           entregue: !!data.entregue,
         });
       });
@@ -74,44 +71,10 @@ export default function Perfil() {
 
   async function marcarEntregue(roletaId: string) {
     try {
-      setClaimError(null);
-      
-      // Find the entry to check delivery date
-      const entry = roletas.find(r => r.id === roletaId);
-      if (!entry) return;
-
-      const now = new Date();
-      const deliveryTime = new Date(entry.dataEntrega);
-
-      // Check if delivery time has passed
-      if (now < deliveryTime) {
-        const hoursLeft = Math.ceil((deliveryTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-        const minutesLeft = Math.ceil((deliveryTime.getTime() - now.getTime()) / (1000 * 60));
-        
-        let timeMessage = '';
-        if (hoursLeft > 0) {
-          timeMessage = `${hoursLeft} hour${hoursLeft > 1 ? 's' : ''}`;
-        } else if (minutesLeft > 0) {
-          timeMessage = `${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
-        } else {
-          timeMessage = 'Just now';
-        }
-        
-        setClaimError({
-          roletaId,
-          message: `This prize will be available on Monday at 8:00 AM (SP). Time left: ${timeMessage}`
-        });
-        return;
-      }
-
       await updateDoc(doc(db, 'roletas', roletaId), { entregue: true });
       setRoletas(prev => prev.map(r => r.id === roletaId ? { ...r, entregue: true } : r));
     } catch (err) {
       console.error('Erro ao marcar como entregue:', err);
-      setClaimError({
-        roletaId,
-        message: 'Error marking as claimed'
-      });
     }
   }
 
@@ -296,31 +259,12 @@ export default function Perfil() {
                     </td>
                     <td className="px-6 py-3 text-center">
                       {!r.entregue && (
-                        <div className="flex flex-col items-center gap-2">
-                          <button
-                            onClick={() => marcarEntregue(r.id)}
-                            disabled={claimError?.roletaId === r.id}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest border px-2 py-1 rounded-sm transition-colors",
-                              claimError?.roletaId === r.id
-                                ? "text-stone-600 border-stone-900/30 bg-stone-950/20 cursor-not-allowed"
-                                : "text-emerald-500 hover:text-emerald-400 border-emerald-900/30 hover:bg-emerald-950/20"
-                            )}
-                          >
-                            {claimError?.roletaId === r.id ? (
-                              <>
-                                <Clock className="w-3 h-3" /> Locked
-                              </>
-                            ) : (
-                              <>
-                                <Check className="w-3 h-3" /> Mark Claimed
-                              </>
-                            )}
-                          </button>
-                          {claimError?.roletaId === r.id && (
-                            <p className="text-[9px] text-amber-500 text-center font-mono max-w-xs">{claimError.message}</p>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => marcarEntregue(r.id)}
+                          className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest border px-2 py-1 rounded-sm transition-colors text-emerald-500 hover:text-emerald-400 border-emerald-900/30 hover:bg-emerald-950/20"
+                        >
+                          <Check className="w-3 h-3" /> Mark Claimed
+                        </button>
                       )}
                     </td>
                   </tr>

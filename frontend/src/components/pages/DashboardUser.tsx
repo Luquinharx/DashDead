@@ -43,13 +43,18 @@ export default function DashboardUser() {
   const { profiles } = useProfilesData();
   
   // Buscar dados de TS do membro selecionado
-  const memberTSData = profiles.find(p => p.username.toLowerCase() === (selectedNickJogo?.toLowerCase() || ''));
-
-  const girosDisponiveis = stats ? Math.floor((stats.weeklyToDate || 0) / 5000) : 0;
+    const memberTSData = profiles.find(p => {
+       try {
+          return p.username.toLowerCase() === decodeURIComponent(selectedNickJogo)?.toLowerCase();
+       } catch {
+          return p.username.toLowerCase() === selectedNickJogo?.toLowerCase();
+       }
+    });
+  const girosDisponiveis = stats ? Math.floor(((stats.weeklyToDate || memberTSData?.weekly_loots || 0) || 0) / 5000) : 0;
 
   // Calculo Unificado de Loot
   const dbClanLoot = firestoreData.baseLoot || 0;
-  const farmedLoot = stats ? stats.weeklyValues.reduce((a, b) => a + b, 0) + stats.weeklyToDate : 0;
+  const farmedLoot = stats ? stats.weeklyValues.reduce((a, b) => a + b, 0) + (stats.weeklyToDate || memberTSData?.weekly_loots || 0) : 0;
   const totalLoot = dbClanLoot + farmedLoot; // Base (se houver) + Apenas o que foi farmado
 
   // Calculo de Meses no Cla
@@ -64,18 +69,18 @@ export default function DashboardUser() {
   }
 
   // Calculo do Colateral
-  const totalDonations = firestoreData.totalDonations || 0;
-  const collateralMonthsVal = monthsInClan * 7000000;
-  const collateralLootVal = totalLoot * 500;
-  const collateralDonationsVal = totalDonations * 2;
-  const collateralTotal = collateralMonthsVal + collateralLootVal + collateralDonationsVal;
+    const donatedCash = firestoreData.donatedCash || 0;
+    const donatedCredits = firestoreData.donatedCredits || 0;
+    const collateralMonthsVal = monthsInClan * 7000000;
+    const collateralLootVal = totalLoot * 500;
+    const collateralDonationsVal = donatedCash * 2; // Credits omitted from collateral math unless specified
+    const collateralTotal = collateralMonthsVal + collateralLootVal + collateralDonationsVal;
 
-  const tooltipText = `${monthsInClan} meses = ${collateralMonthsVal.toLocaleString('pt-BR')}
-${~~(totalDonations / 1000000)}M doados = ${collateralDonationsVal.toLocaleString('pt-BR')}
+    const tooltipText = `${monthsInClan} meses = ${collateralMonthsVal.toLocaleString('pt-BR')}
+${~~(donatedCash / 1000000)}M doados = ${collateralDonationsVal.toLocaleString('pt-BR')}
 ${~~(totalLoot / 1000)}K loot = ${collateralLootVal.toLocaleString('pt-BR')}
 -------------------
 Total = ${collateralTotal.toLocaleString('pt-BR')}`;
-
   const isLoading = loadingNames;
 
   if (isLoading) {
@@ -117,9 +122,15 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
                 className="px-4 py-3 bg-black border border-white/10 rounded-sm text-white focus:outline-none focus:ring-1 focus:ring-red-900 focus:border-red-900 transition-all min-w-[250px] font-mono text-sm uppercase appearance-none cursor-pointer hover:border-white/30"
                 style={{ colorScheme: 'dark' }}
                 >
-                {usernames.map(u => (
-                    <option key={u} value={u} className="bg-stone-950 text-white hover:bg-red-900/20">{u}</option>
-                ))}
+                {usernames.map(u => {
+                  let displayName = u;
+                  try {
+                    displayName = decodeURIComponent(u);
+                  } catch (e) {}
+                  return (
+                    <option key={u} value={u} className="bg-stone-950 text-white hover:bg-red-900/20">{displayName}</option>
+                  );
+                })}
                 </select>
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none group-hover:text-white transition-colors" />
             </div>
@@ -148,12 +159,14 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
 
                   <div>
                     <p className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Donated</p>
-                    <p className="text-xl font-bold text-white font-serif">{totalDonations.toLocaleString('pt-BR')}</p>
+                      <p className="text-xl font-bold text-white font-serif tracking-widest">
+                        ${donatedCash.toLocaleString('pt-BR')}
+                        {donatedCredits > 0 && <span className="text-sm font-bold text-purple-400 ml-2">({donatedCredits.toLocaleString('pt-BR')} CR)</span>}
+                      </p>
                   </div>
               </div>
 
               <div className="bg-stone-900/50 border border-white/5 rounded-sm p-6 shadow-sm flex items-center gap-4 hover:border-red-900/30 transition-colors" title={tooltipText}>
-
                   <div>
                     <p className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Collateral</p>
                     <p className="text-xl font-bold text-white font-serif">{collateralTotal.toLocaleString('pt-BR')}</p>
@@ -174,7 +187,7 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
               <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-red-900/30 transition-colors relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-red-900/10 blur-[30px] rounded-full"></div>
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Loot Today</h3>
+                  <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">DAILY LOOT</h3>
                   <p className="text-3xl font-black text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.3)]">
                     +{stats.dailyLoot.toLocaleString('pt-BR')}
                   </p>
@@ -184,19 +197,9 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
               <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-white/20 transition-colors relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-stone-500/10 blur-[30px] rounded-full"></div>
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Week Loot</h3>
+                  <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">WEEK LOOT</h3>
                   <p className="text-3xl font-bold text-white font-serif">
-                    {stats.weeklyToDate.toLocaleString('pt-BR')}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-white/20 transition-colors relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-stone-500/10 blur-[30px] rounded-full"></div>
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">All Time Loots</h3>
-                  <p className="text-3xl font-bold text-stone-300 font-serif">
-                    {stats.currentAll.toLocaleString('pt-BR')}
+                    {(memberTSData?.weekly_loots || 0).toLocaleString('pt-BR')}
                   </p>
                 </div>
               </div>
@@ -204,9 +207,19 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
               <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-red-900/30 transition-colors relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-red-900/10 blur-[30px] rounded-full"></div>
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Clan Loot</h3>
+                  <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">GANG LOOT</h3>
                   <p className="text-3xl font-bold text-white font-serif">
-                    {(stats.clanAllTime || memberTSData?.all_time_clan_loots || 0).toLocaleString('pt-BR')}
+                    {(memberTSData?.all_time_clan_loots || 0).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-white/20 transition-colors relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-stone-500/10 blur-[30px] rounded-full"></div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">ALL TIME LOOTS</h3>
+                  <p className="text-3xl font-bold text-stone-300 font-serif">
+                    {stats.currentAll.toLocaleString('pt-BR')}
                   </p>
                 </div>
               </div>
@@ -274,7 +287,7 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
                   <h2 className="text-lg font-serif font-bold text-stone-300 mb-6 uppercase tracking-wider">TS Daily Activity</h2>
                   <div className="flex items-center justify-center h-[300px] bg-black rounded">
                     <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={[{ data: new Date().toISOString().slice(0,10), valor: memberTSData.daily_ts_calc || 0 }]}>
+                    <AreaChart data={stats.dailyTSHistory || []}>
                         <defs>
                           <linearGradient id="colorTSDaily" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
@@ -319,13 +332,13 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
 
             {/* Métricas de TS */}
             {memberTSData && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                 <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-purple-900/30 transition-colors relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-purple-900/10 blur-[30px] rounded-full"></div>
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">TS Today</h3>
+                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">DAILY TS</h3>
                     <p className="text-3xl font-black text-purple-500 drop-shadow-[0_0_10px_rgba(168,85,247,0.3)]">
-                      +{(memberTSData.daily_ts_calc || 0).toLocaleString('pt-BR')}
+                      +{stats.daily_ts_calc ? stats.daily_ts_calc.toLocaleString('pt-BR') : 0}
                     </p>
                   </div>
                 </div>
@@ -333,29 +346,39 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
                 <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-white/20 transition-colors relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-stone-500/10 blur-[30px] rounded-full"></div>
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Weekly TS</h3>
+                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">WEEKLY TS</h3>
                     <p className="text-3xl font-bold text-white font-serif">
                       {memberTSData.weekly_ts.toLocaleString('pt-BR')}
                     </p>
                   </div>
                 </div>
 
+                <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-purple-900/30 transition-colors relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-purple-900/10 blur-[30px] rounded-full"></div>
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">GANG WEEKLY TS</h3>
+                    <p className="text-3xl font-bold text-white font-serif">
+                      {memberTSData.clan_weekly_ts.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-white/20 transition-colors relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-stone-500/10 blur-[30px] rounded-full"></div>
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">All Time TS</h3>
+                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">ALL TIME TS</h3>
                     <p className="text-3xl font-bold text-stone-300 font-serif">
                       {memberTSData.all_time_ts.toLocaleString('pt-BR')}
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-purple-900/30 transition-colors relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-purple-900/10 blur-[30px] rounded-full"></div>
+                <div className="bg-gradient-to-br from-stone-900 to-black border border-white/5 rounded-sm p-6 shadow-lg hover:border-emerald-900/30 transition-colors relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-900/10 blur-[30px] rounded-full"></div>
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Clan TS</h3>
-                    <p className="text-3xl font-bold text-white font-serif">
-                      {memberTSData.clan_weekly_ts.toLocaleString('pt-BR')}
+                    <h3 className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">TOTAL EXP</h3>
+                    <p className="text-3xl font-bold text-emerald-500 font-serif">
+                      {memberTSData.total_exp?.toLocaleString('pt-BR') || 0}
                     </p>
                   </div>
                 </div>
@@ -371,3 +394,4 @@ Total = ${collateralTotal.toLocaleString('pt-BR')}`;
     </div>
   );
 }
+

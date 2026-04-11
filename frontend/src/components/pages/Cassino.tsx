@@ -36,7 +36,7 @@ export default function Cassino() {
             )}
           >
             <Zap className="w-5 h-5" />
-            <span className="hidden sm:inline">Blood</span> Roleta
+            <span className="hidden sm:inline">Blood</span> Wheel
           </button>
         </div>
 

@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useProfilesData, type MemberProfile } from '../../hooks/useProfilesData';
+import { useClanData } from '../../hooks/useClanData';
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, Users, TrendingUp, Flame, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { RankBadge } from '../RankBadge';
 
-type SortKey = keyof MemberProfile;
+type SortKey = keyof MemberProfile | 'daily_ts_calc' | 'rank';
 
 function toTitleCase(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
@@ -16,7 +17,10 @@ function formatNumber(n: number): string {
 }
 
 export default function EstatisticasTS() {
-  const { profiles, loading } = useProfilesData();
+  const { profiles, loading: profilesLoading } = useProfilesData();
+  const { data: clanData, loading: clanLoading } = useClanData();
+
+  const loading = profilesLoading || clanLoading;
 
   function formatCollectedAt(iso: string): string {
     if (!iso) return '–';
@@ -72,18 +76,30 @@ export default function EstatisticasTS() {
 
     result.sort((a, b) => {
       let av: number | string = 0, bv: number | string = 0;
-      if (sortKey === 'username') {
-        av = a.username.toLowerCase();
-        bv = b.username.toLowerCase();
-        return sortDesc ? (av < bv ? 1 : av > bv ? -1 : 0) : (av > bv ? 1 : av < bv ? -1 : 0);
-      }
-      av = Number(a[sortKey as keyof MemberProfile] ?? 0);
-      bv = Number(b[sortKey as keyof MemberProfile] ?? 0);
-      return sortDesc ? (Number(bv) - Number(av)) : (Number(av) - Number(bv));
-    });
+        
+        const cA = clanData.find(d => d.username.toLowerCase() === a.username.toLowerCase());
+        const cB = clanData.find(d => d.username.toLowerCase() === b.username.toLowerCase());
 
-    return result;
-  }, [dedupedProfiles, search, sortKey, sortDesc, filterMode]);
+        if (sortKey === 'username') {
+          av = a.username.toLowerCase();
+          bv = b.username.toLowerCase();
+          return sortDesc ? (av < bv ? 1 : av > bv ? -1 : 0) : (av > bv ? 1 : av < bv ? -1 : 0);
+        } else if (sortKey === 'daily_ts_calc') {
+          av = cA?.dailyTS || 0;
+          bv = cB?.dailyTS || 0;
+        } else if (sortKey === 'rank') {
+          av = cA?.rank || '';
+          bv = cB?.rank || '';
+          return sortDesc ? (av < bv ? 1 : av > bv ? -1 : 0) : (av > bv ? 1 : av < bv ? -1 : 0);
+        } else {
+          av = Number(a[sortKey as keyof MemberProfile] ?? 0);
+          bv = Number(b[sortKey as keyof MemberProfile] ?? 0);
+        }
+        return sortDesc ? (Number(bv) - Number(av)) : (Number(av) - Number(bv));
+      });
+
+      return result;
+    }, [dedupedProfiles, search, sortKey, sortDesc, filterMode, clanData]);
 
   const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);
   const paginatedProfiles = filteredAndSortedData.slice(
@@ -104,6 +120,11 @@ export default function EstatisticasTS() {
   }, [dedupedProfiles]);
 
   const totalWeeklyTS = dedupedProfiles.reduce((acc, curr) => acc + curr.weekly_ts, 0);
+  const totalDailyTS = dedupedProfiles.reduce((acc, curr) => {
+    const clanMember = clanData.find(d => d.username.toLowerCase() === curr.username.toLowerCase());
+    return acc + (clanMember?.dailyTS || 0);
+  }, 0);
+  const totalAllTimeTS = dedupedProfiles.reduce((acc, curr) => acc + curr.all_time_ts, 0);
   const topEarner = dedupedProfiles.length > 0 ? [...dedupedProfiles].sort((a, b) => b.weekly_ts - a.weekly_ts)[0] : null;
 
   const latestCollectedAt = dedupedProfiles.length > 0 ? dedupedProfiles[0].collected_at : '';
@@ -149,7 +170,7 @@ export default function EstatisticasTS() {
         </header>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="bg-stone-900/50 border border-white/5 rounded-sm p-6 shadow-lg backdrop-blur-sm group hover:border-red-900/30 transition-all">        
             <div className="flex items-center gap-5">
               <div className="p-4 bg-black border border-white/10 rounded-sm text-stone-400 group-hover:text-red-500 transition-colors">
@@ -162,6 +183,20 @@ export default function EstatisticasTS() {
             </div>
           </div>
 
+          <div className="bg-stone-900/50 border border-white/5 rounded-sm p-6 shadow-lg backdrop-blur-sm group hover:border-sky-900/30 transition-all">        
+             <div className="flex items-center gap-5">
+              <div className="p-4 bg-black border border-white/10 rounded-sm text-stone-400 group-hover:text-sky-500 transition-colors">
+                <TrendingUp className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Total Daily TS</p>
+                <p className="text-2xl font-serif font-black text-white mt-1 text-sky-500 drop-shadow-[0_0_8px_rgba(14,165,233,0.5)]">
+                    +{(totalDailyTS > 0 ? totalDailyTS : 0).toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-stone-900/50 border border-white/5 rounded-sm p-6 shadow-lg backdrop-blur-sm group hover:border-red-900/30 transition-all">        
              <div className="flex items-center gap-5">
               <div className="p-4 bg-black border border-white/10 rounded-sm text-stone-400 group-hover:text-red-500 transition-colors">
@@ -169,8 +204,22 @@ export default function EstatisticasTS() {
               </div>
               <div>
                 <p className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Total Weekly TS</p>
-                <p className="text-3xl font-serif font-black text-white mt-1 text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]">
+                <p className="text-2xl font-serif font-black text-white mt-1 text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]">
                     +{totalWeeklyTS.toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-stone-900/50 border border-white/5 rounded-sm p-6 shadow-lg backdrop-blur-sm group hover:border-emerald-900/30 transition-all">        
+             <div className="flex items-center gap-5">
+              <div className="p-4 bg-black border border-white/10 rounded-sm text-stone-400 group-hover:text-emerald-500 transition-colors">
+                <TrendingUp className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Total All Time TS</p>
+                <p className="text-2xl font-serif font-black text-white mt-1 text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                    +{totalAllTimeTS.toLocaleString('pt-BR')}
                 </p>
               </div>
             </div>
@@ -183,7 +232,7 @@ export default function EstatisticasTS() {
               </div>
               <div>
                 <p className="text-xs font-serif font-bold text-stone-500 uppercase tracking-widest">Top Earner</p>
-                <p className="text-3xl font-serif font-black text-white mt-1 truncate max-w-[200px]" title={topEarner?.username}>
+                <p className="text-2xl font-serif font-black text-white mt-1 truncate max-w-[120px]" title={topEarner?.username}>
                   {topEarner?.username || '-'}
                 </p>
               </div>
@@ -299,7 +348,10 @@ export default function EstatisticasTS() {
                   const clanWeeklyClass = p.clan_weekly_ts > 5000 ? "text-emerald-500" : p.clan_weekly_ts > 0 ? "text-stone-300" : "text-stone-600";
                   const allTimeTSClass = p.all_time_ts > 50000000 ? "text-emerald-400" : "text-stone-300";
 
-                  const dailyTS = p.daily_ts_calc || 0;
+                  const clanMember = clanData.find(d => d.username.toLowerCase() === p.username.toLowerCase());
+                  const rank = clanMember?.rank || 'Street Cleaner';
+
+                  const dailyTS = clanMember?.dailyTS || 0;
                   const dailyTSClass = dailyTS > 0 ? "text-sky-500" : dailyTS < 0 ? "text-red-500" : "text-stone-600";
                   const dailyTSText = (dailyTS >= 0 ? '+' : '') + formatNumber(dailyTS);
 
@@ -308,13 +360,13 @@ export default function EstatisticasTS() {
                       key={p.username}
                       className={cn(
                         "transition-colors hover:bg-white/5",
-                        isHighlight && "bg-red-950/10 hover:bg-red-950/20"      
+                        isHighlight && "bg-red-950/10 hover:bg-red-950/20"
                       )}
                     >
                       <td className="px-6 py-4 font-bold text-white whitespace-nowrap flex items-center gap-3">
                         <span className="text-stone-600 w-6 text-xs text-right font-serif">{absoluteIdx + 1}.</span>
                         <span className={cn(
-                          "inline-block w-1.5 h-1.5 rotate-45 flex-shrink-0",   
+                          "inline-block w-1.5 h-1.5 rotate-45 flex-shrink-0",
                           "bg-red-500 shadow-[0_0_5px_red]"
                         )} title="Updated" />
                         <Link to={`/dashboard?user=${encodeURIComponent(p.username)}`} className="tracking-wide hover:text-red-500 hover:underline transition-all">
@@ -323,7 +375,7 @@ export default function EstatisticasTS() {
                         {isHighlight && <Flame className="w-3.5 h-3.5 text-red-600" />}
                       </td>
                       <td className="px-6 py-4 text-right text-stone-300 hidden md:table-cell">
-                        <RankBadge rank={p.rank} />
+                        <RankBadge rank={rank} />
                       </td>
                       <td className={cn(
                         "px-6 py-4 text-right font-bold",

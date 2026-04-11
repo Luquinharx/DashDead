@@ -14,7 +14,7 @@ export default function Roleta() {
   const { config } = useCasinoConfig();
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<typeof config.prizes[0] | null>(null);
-  const [slots, setSlots] = useState(['ÔØô', 'ÔØô', 'ÔØô']);
+  const [slots, setSlots] = useState(['🩸', '🩸', '🩸']);
   
   const [girosUsados, setGirosUsados] = useState(0);
   const [historico, setHistorico] = useState<{ premio: string; data: string; entregue: boolean }[]>([]);
@@ -26,24 +26,28 @@ export default function Roleta() {
     const currentMin = now.getMinutes();
 
     let daysToSubtract = (currentDay + 6) % 7; 
-    if (currentDay === 1 && (currentHour < 9 || (currentHour === 9 && currentMin < 2))) {
+    if (currentDay === 1 && (currentHour < 7 || (currentHour === 7 && currentMin < 53))) {
       daysToSubtract = 7;
     }
 
     const startOfPrizeWeek = new Date(now);
     startOfPrizeWeek.setDate(now.getDate() - daysToSubtract);
-    startOfPrizeWeek.setHours(9, 2, 0, 0);
-    
-    return {
-       startOfPrizeWeek, 
-       lootWeekLabel: `Week of ${startOfPrizeWeek.getDate()}/${startOfPrizeWeek.getMonth()+1}`
-    };
-  }, []);
+    startOfPrizeWeek.setHours(7, 53, 0, 0);
 
-  const { startOfPrizeWeek } = getPreviousWeekRange();
+      const nextSpinDate = new Date(startOfPrizeWeek);
+      nextSpinDate.setDate(nextSpinDate.getDate() + 7);
+      const nextSpinStr = `${String(nextSpinDate.getDate()).padStart(2, '0')}/${String(nextSpinDate.getMonth() + 1).padStart(2, '0')} - 07:53`;
 
-  // Loot Reference
-  const lootReference = (stats?.weeklyValues && stats.weeklyValues.length >= 2) 
+      return {
+         startOfPrizeWeek,
+         nextSpinStr,
+         lootWeekLabel: `Week of ${startOfPrizeWeek.getDate()}/${startOfPrizeWeek.getMonth()+1}`
+      };
+    }, []);
+
+    const { startOfPrizeWeek, nextSpinStr } = getPreviousWeekRange();
+
+    const lootReference = (stats?.weeklyValues && stats.weeklyValues.length >= 2)
       ? stats.weeklyValues[stats.weeklyValues.length - 2] 
       : 0;
 
@@ -93,14 +97,17 @@ export default function Roleta() {
     load();
   }, [profile, spinning, startOfPrizeWeek]);
 
-  const girosRestantesSemanais = Math.max(0, weeklyTotal - girosUsados);
-  const girosDisponiveis = Math.min(3, girosRestantesSemanais + extraSpins);
+    const girosRestantesSemanais = Math.max(0, weeklyTotal - girosUsados);
+    const girosDisponiveis = Math.min(3, girosRestantesSemanais + extraSpins);
 
-  const girar = useCallback(async () => {
-    if (spinning || girosDisponiveis <= 0 || !profile?.userId) return;
+    const now = new Date();
+    const isMondayMorning = now.getDay() === 1 && now.getHours() < 12;
+
+    const girar = useCallback(async () => {
+      if (spinning || girosDisponiveis <= 0 || !profile?.userId || !isMondayMorning) return;
     setSpinning(true);
     setResult(null);
-    setSlots(['­ƒÄ░', '­ƒÄ░', '­ƒÄ░']);
+    setSlots(['🩸', '🩸', '🩸']);
 
     // Weighted Random Selection
     const rand = Math.random() * 100;
@@ -136,7 +143,7 @@ export default function Roleta() {
         userId: profile.userId,
         premio: selected.name,
         data: Timestamp.now(),
-        entregue: true,
+        entregue: false,
       });
 
       // Se usou um giro extra (porque n├úo tinha mais semanais ou n├úo era qualificado), debitar
@@ -178,7 +185,7 @@ export default function Roleta() {
         </header>
 
         {/* Info Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-black border border-white/10 rounded-sm p-6 text-center shadow-lg relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-1 h-full bg-red-900/50"></div>
             <p className="text-xs text-stone-500 uppercase tracking-widest font-serif">Last Week Loot</p>
@@ -202,10 +209,18 @@ export default function Roleta() {
              <div className="absolute top-0 left-0 w-1 h-full bg-red-900/50"></div>
             <p className="text-xs text-stone-500 uppercase tracking-widest font-serif">Spins Available</p>
             <p className={cn(
-                "text-3xl font-serif font-bold mt-2", 
+                "text-3xl font-serif font-bold mt-2",
                 girosDisponiveis > 0 ? "text-red-500 animate-pulse" : "text-stone-600"
             )}>
                 {girosDisponiveis}
+            </p>
+          </div>
+
+          <div className="bg-black border border-white/10 rounded-sm p-6 text-center shadow-lg relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full bg-red-900/50"></div>
+            <p className="text-xs text-stone-500 uppercase tracking-widest font-serif">Next Spin</p>
+            <p className="text-2xl font-serif font-bold text-stone-300 mt-2 drop-shadow-md">
+                {nextSpinStr}
             </p>
           </div>
         </div>
@@ -245,12 +260,12 @@ export default function Roleta() {
                   "relative z-10 px-12 py-5 rounded-sm font-serif font-black text-2xl uppercase tracking-[0.2em] shadow-2xl transform transition-all active:scale-95 border border-white/10",
                   spinning
                     ? "bg-stone-900 text-stone-600 cursor-wait border-stone-800"
-                    : girosDisponiveis > 0
+                    : girosDisponiveis > 0 && isMondayMorning
                       ? "bg-red-800 text-white hover:bg-red-700 hover:shadow-[0_0_30px_rgba(220,38,38,0.4)] border-red-600"
                       : "bg-stone-900 text-stone-700 cursor-not-allowed border-stone-800"
                 )}
               >
-                {spinning ? 'SPINNING...' : 'SPIN'}
+                {spinning ? 'SPINNING...' : !isMondayMorning ? 'ONLY MONDAY MORNING' : 'SPIN'}
             </button>
 
              {/* Result Display */}

@@ -96,14 +96,14 @@ def scrape_and_push():
             "username": m["username"],
             "collected_at": now_iso,
 
-            "weekly_ts": max(raw_weekly_ts, raw_clan_weekly_ts),
-            "clan_weekly_ts": max(raw_weekly_ts, raw_clan_weekly_ts),
+"weekly_ts": raw_weekly_ts,
+            "clan_weekly_ts": raw_clan_weekly_ts,
             "all_time_ts": parse_int(pdata.get("all_time_ts", "0")),
             "total_exp": parse_int(pdata.get("total_exp", "0")),
 
-            "weekly_loots": max(raw_weekly_loots, raw_clan_weekly_loots),
-            "all_time_loots": parse_int(pdata.get("all_time_loots", "0")),
-            "clan_weekly_loots": max(raw_weekly_loots, raw_clan_weekly_loots),
+            "weekly_loots": raw_weekly_loots,
+            "all_time_loots": parse_int(pdata.get("all_time_loots", "0")),      
+            "clan_weekly_loots": raw_clan_weekly_loots,
             "all_time_clan_loots": parse_int(pdata.get("all_time_clan_loots", "0")),
 
             "last_clan_join": pdata.get("last_clan_join", "")

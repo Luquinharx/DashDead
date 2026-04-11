@@ -181,8 +181,9 @@ export default function Perfil() {
             <div className="text-center p-4 bg-black/40 border border-white/5 rounded-sm">
               <p className="text-[10px] text-stone-500 uppercase tracking-[0.2em] mb-2">Donated</p>
               <p className="text-2xl font-bold text-emerald-500 font-mono drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
-                {firestoreData.totalDonations.toLocaleString('pt-BR')}
-              </p>
+                  ${firestoreData.donatedCash.toLocaleString('pt-BR')}
+                </p>
+                {firestoreData.donatedCredits > 0 && <p className="text-sm font-bold text-purple-400 mt-1">{firestoreData.donatedCredits} CR</p>}
             </div>
             <div className="text-center p-4 bg-black/40 border border-white/5 rounded-sm">
               <p className="text-[10px] text-stone-500 uppercase tracking-[0.2em] mb-2">Weekly Loot</p>

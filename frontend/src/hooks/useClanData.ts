@@ -8,6 +8,7 @@ export interface MemberData {
   currentAll: number;
   clanAllTime: number;
   dailyLoot: number;
+  clanWeeklyLoot: number;
   dailyTS: number;
   weeklyToDate: number;
   weeklyValues: number[];
@@ -62,8 +63,9 @@ export function useClanData() {
       const dd = String(adjustedDate.getDate()).padStart(2, '0');
       const todayStr = `${yyyy}-${mm}-${dd}`;
 
-      // A base diária (8 AM) é capturada pela snapshot do final do "dia anterior"
-      const yesterday = new Date(adjustedDate.getTime() - 24 * 60 * 60 * 1000);
+
+      // A base diaria (8 AM) e capturada pela snapshot do final do "dia anterior"
+      const yesterday = new Date(adjustedDate.getTime() - 24 * 60 * 60 * 1000); 
       const yY = yesterday.getFullYear();
       const yM = String(yesterday.getMonth() + 1).padStart(2, '0');
       const yD = String(yesterday.getDate()).padStart(2, '0');
@@ -81,12 +83,11 @@ export function useClanData() {
       // Fetches paralelos
       const [profRes, dailyRes, _weeklyRes] = await Promise.all([
         fetch(`${FIREBASE_URL}/profiles.json`).catch(() => null),
-        fetch(`${FIREBASE_URL}/daily/${yesterdayStr}.json`).catch(() => null),
+        fetch(`${FIREBASE_URL}/daily.json`).catch(() => null),
         fetch(`${FIREBASE_URL}/weekly/${weekStr}.json`).catch(() => null)
       ]);
-
       const profiles = profRes && profRes.ok ? await profRes.json() : {};
-      const daily = dailyRes && dailyRes.ok ? await dailyRes.json() : {};
+      const dailyData = dailyRes && dailyRes.ok ? await dailyRes.json() : {};
       // const weekly = weeklyRes && weeklyRes.ok ? await weeklyRes.json() : {};
 
       if (!profiles || profiles.error) {
@@ -94,6 +95,8 @@ export function useClanData() {
         setLoading(false);
         return;
       }
+
+      const dailyDates = Object.keys(dailyData).sort().filter(d => d <= yesterdayStr); // Sort chronological and only yesterday and before
 
       const users = Object.keys(profiles);
       const out: MemberData[] = [];
@@ -110,20 +113,56 @@ export function useClanData() {
         const currentAll = val.all_time_loots || 0;
         const clanAllTime = val.all_time_clan_loots || 0;
         const currentTS = val.all_time_ts || 0;
+        const currentTotalExp = val.total_exp || 0;
 
-        // Baselines
-        const dailyBaseline = daily && daily[u] ? daily[u] : val;
-        // const weeklyBaseline = weekly && weekly[u] ? weekly[u] : val;
+        const dbUserKey = encodeURIComponent(val.username || "").replace(/\./g, '%2E');
 
-        const baselineLoot = daily && daily[u] ? (daily[u].alltimeloot || daily[u].all_time_loots || 0) : currentAll;
-        const dailyLoot = Math.max(0, currentAll - baselineLoot);
-        const dailyTSRecord = Math.max(0, currentTS - (dailyBaseline.all_time_ts || 0));
-        
-        // Scrap handles weekly info but users wanted native calculation? User said "Diretamente do scraping" 
-        // For Dash Loot: `Weekly Loot` -> "Obtido diretamente do scraping"
-        // But if scraping only has total all_time_loots now? Wait, scraping has `weekly_loots` and `clan_weekly_ts` etc!
-        const weeklyLoot = Math.max(val.weekly_loots || 0, val.clan_weekly_loots || 0);
-        const dailyTS = dailyTSRecord;
+        // 2. Buscamos a "Foto de Base" (Baseline)
+        let baselineLoot: number | null = null;
+        let baselineExp: number | null = null;
+
+        // Olha todo o '/daily.json' de ontem pra trás procurando a última contagem boa:
+        for (let i = dailyDates.length - 1; i >= 0; i--) {
+            const snap = dailyData[dailyDates[i]]?.[dbUserKey] || dailyData[dailyDates[i]]?.[u];
+            if (snap) {
+                if (baselineLoot === null) {
+                    // Sucesso! Pegou o status salvo de loot do passado
+                    baselineLoot = snap.alltimeloot !== undefined ? Number(snap.alltimeloot) : (snap.all_time_loots !== undefined ? Number(snap.all_time_loots) : null);
+                }
+                if (baselineExp === null) {
+                    const snapExp = snap.total_exp !== undefined ? Number(snap.total_exp) : (snap.alltimets !== undefined ? Number(snap.alltimets) : (snap.all_time_ts !== undefined ? Number(snap.all_time_ts) : null));
+                    if (snapExp !== null) {
+                        baselineExp = snapExp;
+                    }
+                }
+                // Se achou os dois numerinhos antigos, para de procurar p/ poupar memoria
+                if (baselineLoot !== null && baselineExp !== null) {
+                    break;
+                }
+            }
+        }
+
+        // 3. A Matemática (Total Atual - Total do Passado)
+
+        // ----- CALCULO DO LOOT DIÁRIO -----
+        let dailyLoot = 0;
+        if (baselineLoot !== null) {
+            dailyLoot = Math.max(0, currentAll - baselineLoot);
+        } else {
+            dailyLoot = 0;
+        }
+
+        // ----- CALCULO DO TS DIÁRIO -----
+        let dailyTS = 0;
+        if (baselineExp !== null) {
+            dailyTS = Math.max(0, currentTotalExp - baselineExp);
+        } else {
+            dailyTS = 0;
+        }
+
+        const weeklyLoot = Number(val.weekly_loots || 0);
+        const clanWeeklyLoot = Number(val.clan_weekly_loots || 0);
+
 
         // Rank rule inside the app as per user instructions
         // We calculate internally. Rule: skip Gate Soldier, maybe use the same as Python without Gate Soldier?
@@ -146,6 +185,7 @@ export function useClanData() {
           currentAll: currentAll,
           clanAllTime: clanAllTime,
           dailyLoot: dailyLoot,
+          clanWeeklyLoot: clanWeeklyLoot,
           dailyTS: dailyTS,
           weeklyToDate: weeklyLoot,
           weeklyValues: [weeklyLoot],

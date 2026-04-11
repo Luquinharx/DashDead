@@ -3,24 +3,31 @@ import { useState, useEffect } from 'react';
 export interface FirestoreClanData {
   joinDate: Date | null;
   baseLoot: number;
-  totalDonations: number;
+  donatedCash: number;
+  donatedCredits: number;
 }
 
 export function useFirestoreClanData(username: string | undefined) {
-  const [data, setData] = useState<FirestoreClanData>({ joinDate: null, baseLoot: 0, totalDonations: 0 });
+  const [data, setData] = useState<FirestoreClanData>({ joinDate: null, baseLoot: 0, donatedCash: 0, donatedCredits: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       if (!username) {
-        setData({ joinDate: null, baseLoot: 0, totalDonations: 0 });
+        setData({ joinDate: null, baseLoot: 0, donatedCash: 0, donatedCredits: 0 });
         setLoading(false);
         return;
       }
 
       setLoading(true);
       try {
-        const uLower = username.toLowerCase().trim();
+        let decodedUsername = username;
+        try {
+          decodedUsername = decodeURIComponent(username);
+        } catch {
+          // ignore
+        }
+        const uLower = decodedUsername.toLowerCase().trim();
 
         // Fetch clan_member_profiles from Realtime Database
         const profilesRes = await fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_member_profiles.json");
@@ -52,7 +59,8 @@ export function useFirestoreClanData(username: string | undefined) {
         const logsRes = await fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_logs/runs.json");
         const logsData = await logsRes.json();
         
-        let totalDonations = 0;
+        let donatedCash = 0;
+        let donatedCredits = 0;
         const allLogs: Record<string, any> = {};
 
         if (logsData) {
@@ -69,16 +77,21 @@ export function useFirestoreClanData(username: string | undefined) {
 
         Object.values(allLogs).forEach(fields => {
           if (fields.action === 'give' && fields.username && fields.username.toLowerCase().trim() === uLower) {
-            let amountStr = String(fields.currency || '0');
-            amountStr = amountStr.replace(/[^0-9]/g, '');
-            totalDonations += Number(amountStr) || 0;
+            const curr = (fields.currency || '').toLowerCase();
+            let amountStr = curr.replace(/[^0-9]/g, '');
+            const amount = Number(amountStr) || 0;
+            if (curr.includes('credit')) {
+              donatedCredits += amount;
+            } else {
+              donatedCash += amount;
+            }
           }
         });
 
-        setData({ joinDate, baseLoot, totalDonations });
+        setData({ joinDate, baseLoot, donatedCash, donatedCredits });
       } catch (err) {
         console.error('Error fetching firestore clan data:', err);
-        setData({ joinDate: null, baseLoot: 0, totalDonations: 0 });
+        setData({ joinDate: null, baseLoot: 0, donatedCash: 0, donatedCredits: 0 });
       } finally {
         setLoading(false);
       }

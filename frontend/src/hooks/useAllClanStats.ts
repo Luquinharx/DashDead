@@ -3,10 +3,15 @@ import { useClanData } from './useClanData';
 
 export interface ClanMemberStat {
   username: string;
-  donations: number;
+  rank: string;
+  donatedCash: number;
+  donatedCredits: number;
   baseLoot: number;
   scraperLoot: number;
   totalLoot: number;
+  dailyLoot: number;
+  weeklyLoot: number;
+  clanWeeklyLoot: number;
 }
 
 export function useAllClanStats() {
@@ -23,7 +28,8 @@ export function useAllClanStats() {
         const bankRes = await fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_logs/runs.json");
         const bankData = await bankRes.json();
 
-        const donationsMap: Record<string, number> = {};
+        const donatedCashMap: Record<string, number> = {};
+        const donatedCreditsMap: Record<string, number> = {};
         const allLogs: Record<string, any> = {};
 
         if (bankData) {
@@ -40,20 +46,29 @@ export function useAllClanStats() {
 
         Object.values(allLogs).forEach(fields => {
           if (fields.action === 'give' && fields.username) {
-            let amountStr = fields.currency || '0';
-            amountStr = amountStr.replace(/[^0-9]/g, '');
+            const curr = (fields.currency || '').toLowerCase();
+            let amountStr = curr.replace(/[^0-9]/g, '');
             const amount = Number(amountStr) || 0;
-            donationsMap[fields.username] = (donationsMap[fields.username] || 0) + amount;
+            if (curr.includes('credit')) {
+              donatedCreditsMap[fields.username] = (donatedCreditsMap[fields.username] || 0) + amount;
+            } else {
+              donatedCashMap[fields.username] = (donatedCashMap[fields.username] || 0) + amount;
+            }
           }
         });
 
         // Use scraper data directly (all_time_clan_loots is always updated)
         const mergedStats: ClanMemberStat[] = scraperData.map(scUser => ({
           username: scUser.username,
-          donations: donationsMap[scUser.username] || 0,
+          rank: scUser.rank || 'Street Cleaner',
+          donatedCash: donatedCashMap[scUser.username] || 0,
+          donatedCredits: donatedCreditsMap[scUser.username] || 0,
           baseLoot: 0,
           scraperLoot: scUser.clanAllTime,
-          totalLoot: scUser.clanAllTime
+          totalLoot: scUser.clanAllTime,
+          dailyLoot: scUser.dailyLoot,
+          weeklyLoot: scUser.weeklyToDate,
+          clanWeeklyLoot: scUser.clanWeeklyLoot
         }));
 
         // Sort by totalLoot descending

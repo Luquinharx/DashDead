@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useEventStats } from '../../hooks/useEventStats';
 import { RankBadge } from '../RankBadge';
 import { Gem, Loader2, Search } from 'lucide-react';
-import { cn } from '../../lib/utils';
 
 export default function Evento() {
   const { stats, loading } = useEventStats();

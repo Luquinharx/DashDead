@@ -10,12 +10,24 @@ export interface FirestoreClanData {
 export function useFirestoreClanData(username: string | undefined) {
   const [data, setData] = useState<FirestoreClanData>({ joinDate: null, baseLoot: 0, donatedCash: 0, donatedCredits: 0 });
   const [loading, setLoading] = useState(true);
+  const [logsData, setLogsData] = useState<any>(null);
+  const [profilesData, setProfilesData] = useState<any>(null);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_logs/runs.json").then(r => r.json()).catch(() => null),
+      fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_member_profiles.json").then(r => r.json()).catch(() => null)
+    ]).then(([logs, profiles]) => {
+      setLogsData(logs);
+      setProfilesData(profiles);
+    });
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
-      if (!username) {
+      if (!username || !logsData || !profilesData) {
         setData({ joinDate: null, baseLoot: 0, donatedCash: 0, donatedCredits: 0 });
-        setLoading(false);
+        setLoading(!logsData || !profilesData);
         return;
       }
 
@@ -28,10 +40,6 @@ export function useFirestoreClanData(username: string | undefined) {
           // ignore
         }
         const uLower = decodedUsername.toLowerCase().trim();
-
-        // Fetch clan_member_profiles from Realtime Database
-        const profilesRes = await fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_member_profiles.json");
-        const profilesData = await profilesRes.json();
         
         let joinDate: Date | null = null;
         let baseLoot = 0;
@@ -55,9 +63,8 @@ export function useFirestoreClanData(username: string | undefined) {
           }
         }
 
-// Fetch bank from Realtime Database
-        const logsRes = await fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_logs/runs.json");
-        const logsData = await logsRes.json();
+        // Fetch bank from Realtime Database
+        // Already fetched above
         
         let donatedCash = 0;
         let donatedCredits = 0;
@@ -98,7 +105,7 @@ export function useFirestoreClanData(username: string | undefined) {
     }
 
     fetchData();
-  }, [username]);
+  }, [username, logsData, profilesData]);
 
   return { data, loading };
 }

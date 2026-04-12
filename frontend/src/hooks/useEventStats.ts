@@ -11,48 +11,74 @@ export interface EventMemberStat {
 export function useEventStats() {
   const [stats, setStats] = useState<EventMemberStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdatedUrl, setLastUpdatedUrl] = useState<string>('');
   const { data: scraperData, loading: scraperLoading } = useClanData();
+  const [bankData, setBankData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_logs/runs.json")
+      .then(res => res.json())
+      .then(setBankData)
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     async function fetchStats() {
-      if (scraperLoading) return;
+      if (scraperLoading || !bankData) return;
       setLoading(true);
       try {
-        const bankRes = await fetch("https://deadbb-2d5a8-default-rtdb.firebaseio.com/clan_logs/runs.json");
-        const bankData = await bankRes.json();
-
         const donatedCashMap: Record<string, number> = {};
         const donatedCreditsMap: Record<string, number> = {};
-        const allLogs: Record<string, any> = {};
+        const allLogs: any[] = [];
+        let maxTimestamp = 0;
+        let latestDate = "Indisponível";
 
         if (bankData) {
           Object.values(bankData).forEach((run: any) => {
             if (run && run.bank) {
-              Object.entries(run.bank).forEach(([k, v]: [string, any]) => {
+              const entries = Array.isArray(run.bank) ? run.bank : Object.values(run.bank);
+              entries.forEach((v: any) => {
                 if (v && v.fields) {
-                  allLogs[k] = v.fields;
+                  allLogs.push(v.fields);
+                  if (v.ingested_at) {
+                    const dt = new Date(v.ingested_at).getTime();
+                    if (dt > maxTimestamp) {
+                      maxTimestamp = dt;
+                      latestDate = v.fields.time || new Date(v.ingested_at).toLocaleString('pt-BR');
+                    }
+                  }
                 }
               });
             }
           });
         }
+        setLastUpdatedUrl(latestDate);
 
         const isDateInEventRange = (timeStr: string) => {
           if (!timeStr) return false;
+          // timeStr is usually like "4/12/2026 01:55 AM" -> M/D/YYYY
           const parts = timeStr.split(' ');
           if (parts.length === 0) return false;
-          const [dayStr, monthStr, yearStr] = parts[0].split('/');
-          const d = parseInt(dayStr, 10);
-          const m = parseInt(monthStr, 10);
-          const y = parseInt(yearStr, 10);
+          const dateParts = parts[0].split('/');
+          if (dateParts.length < 3) return false;
           
+          let mStr = dateParts[0];
+          let dStr = dateParts[1];
+          let yStr = dateParts[2];
+          
+          // O formato que vem no scraper do dfprofiler: Mes/Dia/Ano
+          let m = parseInt(mStr, 10);
+          let d = parseInt(dStr, 10);
+          let y = parseInt(yStr, 10);
+          
+          // Para o evento de abril: de 9 a 12 de abril de 2026
           if (y === 2026 && m === 4 && d >= 9 && d <= 12) {
             return true;
           }
           return false;
         };
 
-        Object.values(allLogs).forEach(fields => {
+        allLogs.forEach(fields => {
           if (fields.action === 'give' && fields.username && isDateInEventRange(fields.time)) {
             const curr = (fields.currency || '').toLowerCase();
             let amountStr = curr.replace(/[^0-9]/g, '');
@@ -83,7 +109,7 @@ export function useEventStats() {
     }
 
     fetchStats();
-  }, [scraperData, scraperLoading]);
+  }, [scraperData, scraperLoading, bankData]);
 
-  return { stats, loading };
+  return { stats, loading, lastUpdated: lastUpdatedUrl };
 }

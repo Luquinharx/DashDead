@@ -5,7 +5,7 @@ import { Coins, Trophy, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export default function Estatisticas() {
-  const { stats, loading } = useAllClanStats();
+  const { stats, loading, lastUpdated } = useAllClanStats();
   const [activeTab, setActiveTab] = useState<'donations'|'loot'>('donations');
 
   if (loading) {
@@ -40,8 +40,13 @@ export default function Estatisticas() {
             <p className="text-slate-400 mt-2 tracking-wide">
               Consolidated view of contributions and loot.
             </p>
+            {lastUpdated && (
+              <p className="text-slate-500 mt-1 font-mono text-sm opacity-80">
+                Última atualização do Banco: {lastUpdated}
+              </p>
+            )}
           </div>
-          
+
           <div className="flex bg-[#0a0a0a] p-1 border border-white/10 rounded-lg shrink-0">
             <button
               onClick={() => setActiveTab('donations')}

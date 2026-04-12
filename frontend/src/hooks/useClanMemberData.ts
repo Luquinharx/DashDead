@@ -97,9 +97,12 @@ export function useClanMemberData(username: string | undefined) {
         shortDates.push(`${yD}/${yM}`);
       }
 
+      const yesterday = new Date(adjustedDate.getTime() - 24 * 60 * 60 * 1000);
+      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
       const requests = [
         fetch(`${FIREBASE_RT_URL}/profiles/${dbUser}.json`).then(r => r.json()),
-        fetch(`${FIREBASE_RT_URL}/daily.json`).then(r => r.json()).catch(() => null),
+        fetch(`${FIREBASE_RT_URL}/daily.json?orderBy="$key"&endAt="${encodeURIComponent('"' + yesterdayStr + '"')}"&limitToLast=7`).then(r => r.json()).catch(() => null),
         ...dailyDates.map(dateStr => fetch(`${FIREBASE_RT_URL}/daily/${dateStr}/${dbUser}.json`).then(r => r.json()).catch(() => null))
       ];
 
@@ -151,8 +154,6 @@ export function useClanMemberData(username: string | undefined) {
       let cardDailyTS = 0;
 
       if (allDailyData) {
-        const yesterday = new Date(adjustedDate.getTime() - 24 * 60 * 60 * 1000);
-        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
         const allDailyDates = Object.keys(allDailyData).sort().filter(d => d <= yesterdayStr);
         for (let i = allDailyDates.length - 1; i >= 0; i--) {
             const snap = allDailyData[allDailyDates[i]]?.[dbUser] || allDailyData[allDailyDates[i]]?.[username];

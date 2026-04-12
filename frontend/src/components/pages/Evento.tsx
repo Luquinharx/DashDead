@@ -4,7 +4,7 @@ import { RankBadge } from '../RankBadge';
 import { Gem, Loader2, Search } from 'lucide-react';
 
 export default function Evento() {
-  const { stats, loading } = useEventStats();
+  const { stats, loading, lastUpdated } = useEventStats();
   const [searchTerm, setSearchTerm] = useState('');
 
   if (loading) {
@@ -37,6 +37,11 @@ export default function Evento() {
             <p className="text-slate-400 mt-2 tracking-wide font-serif text-lg">
               April 09 to April 12
             </p>
+            {lastUpdated && (
+              <p className="text-slate-500 mt-1 font-mono text-sm opacity-80">
+                Última atualização do Banco: {lastUpdated}
+              </p>
+            )}
           </div>
         </header>
 

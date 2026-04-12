@@ -83,7 +83,7 @@ export function useClanData() {
       // Fetches paralelos
       const [profRes, dailyRes, _weeklyRes] = await Promise.all([
         fetch(`${FIREBASE_URL}/profiles.json`).catch(() => null),
-        fetch(`${FIREBASE_URL}/daily.json`).catch(() => null),
+        fetch(`${FIREBASE_URL}/daily.json?orderBy="$key"&endAt="${encodeURIComponent('"' + yesterdayStr + '"')}"&limitToLast=7`).catch(() => null),
         fetch(`${FIREBASE_URL}/weekly/${weekStr}.json`).catch(() => null)
       ]);
       const profiles = profRes && profRes.ok ? await profRes.json() : {};
